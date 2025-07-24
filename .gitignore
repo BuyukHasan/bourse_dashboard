@@ -1,0 +1,24 @@
+# Fichiers système
+.DS_Store
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Environnements
+.venv/
+venv/
+env/
+
+# Données sensibles
+.env
+*.toml  # Fichiers de config Streamlit
+
+# Données brutes/cache (optionnel)
+data/raw/
+data/cache/
+
+# IDE
+.idea/
+.vscode/
