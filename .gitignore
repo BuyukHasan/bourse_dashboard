@@ -1,31 +1,19 @@
-# Fichiers système
-.DS_Store
-*.log
-
 # Python
 __pycache__/
 *.py[cod]
-*.so
-.Python
 
-# Environnements virtuels
+# Environnements
 .venv/
 venv/
-env/
 
-# Données sensibles
-.env
-secrets.toml
-config_private.py
-
-# Cache et données brutes (optionnel)
+# Données et secrets
 data/raw/
-data/cache/
+.env
+secrets.*
 
 # IDE
-.idea/
 .vscode/
-*.swp
+.idea/
 
-# Fichiers générés par Streamlit
-.streamlit/
+# Streamlit
+.streamlit/secrets.toml
