@@ -5,20 +5,27 @@
 # Python
 __pycache__/
 *.py[cod]
+*.so
+.Python
 
-# Environnements
+# Environnements virtuels
 .venv/
 venv/
 env/
 
 # Données sensibles
 .env
-*.toml  # Fichiers de config Streamlit
+secrets.toml
+config_private.py
 
-# Données brutes/cache (optionnel)
+# Cache et données brutes (optionnel)
 data/raw/
 data/cache/
 
 # IDE
 .idea/
 .vscode/
+*.swp
+
+# Fichiers générés par Streamlit
+.streamlit/
