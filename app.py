@@ -10,4 +10,7 @@ analyze.add_rsi()
 analyze.show_dataframe()
 
 visualizer = Visualizer(df)
-visualizer.show_MA()
+visualizer.MA_draw()
+visualizer.Rsi_draw()
+visualizer.overpurchaseselling()
+visualizer.show_graph()
