@@ -39,4 +39,10 @@ class Visualizer :
             name='Moyenne 200 jours',
             line=dict(color='red', dash='dash')
         ))
+        # Configuration des axes
+        self.fig.update_layout(
+            xaxis_title='Date',
+            yaxis_title='Price',
+            hovermode='x unified'
+            )
         self.fig.show()
