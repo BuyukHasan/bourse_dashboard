@@ -1,4 +1,4 @@
-from data_fetcher import DataFetcher
+from src.data_fetcher import DataFetcher
 import pandas as pd
 import numpy as np
 
@@ -13,7 +13,7 @@ class TechnicalAnalyzer :
         self.df = data_frame
     
     def show_dataframe(self):
-        return self.df
+        print(self.df)
     def calcul_50_200_jours(self):
         # Vérifie que la colonne Clôt existe
         if 'Clôt' not in self.df.columns:
