@@ -1,2 +1,2 @@
 # bourse_dashboard
-Interactive stock market dashboard built with Python (Streamlit, Plotly, yfinance) to visualize real-time market trends. Enables analysis of individual stocks, performance comparisons, and key technical indicators calculation.
+Don't worry i will complete the readme when the V1 of my project will be released . Actually we are in the V0.4 .
