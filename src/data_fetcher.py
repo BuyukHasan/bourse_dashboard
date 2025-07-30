@@ -91,3 +91,15 @@ class DataFetcher:
         except Exception as e:
             print(f"⚠️ Cleaning error: {str(e)}")
             return pd.DataFrame()
+    def test_fetcher(cls):
+        """Teste la classe DataFetcher
+    
+        Exemple:
+        >>> df = DataFetcher.test_fetcher()
+        >>> print(df[['Ouv', 'Clôt']].head())
+        >>> print("\n✅ Test fetch_data OK")
+        """
+        fetcher = cls("AAPL")
+        df = fetcher.fetch_data(period="1mo")
+        assert not df.empty, "Erreur: DataFrame vide"
+        return df

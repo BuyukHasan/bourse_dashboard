@@ -141,3 +141,18 @@ class TechnicalAnalyzer:
         except Exception as e:
             print(f"Cleaning error: {str(e)}")
             return pd.DataFrame()
+    def test_analyzer(cls, df=None):
+        """Teste les calculs techniques
+    
+        Exemple:
+        >>> df = DataFetcher.test_fetcher()
+        >>> analyzer = TechnicalAnalyzer.test_analyzer(df)
+        >>> print(analyzer.df[['MA_50', 'rsi']].tail())
+        """
+        if df is None:
+            df = DataFetcher("AAPL").fetch_data(period="1mo")
+    
+        analyzer = cls(df)
+        analyzer.calcul_50_200_jours()
+        analyzer.add_rsi()
+        return analyzer

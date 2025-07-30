@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import pandas as pd
 from plotly.subplots import make_subplots
+from src.technical_analyzer import TechnicalAnalyzer
 
 class Visualizer:
     def __init__(self, data_frame, rows=2, columns=2, row_heights=None):
@@ -188,3 +189,17 @@ class Visualizer:
             
         self.fig.show()
         return self
+    def test_visualizer(cls, df=None):
+        """Génère un rapport de test visuel
+    
+        Exemple:
+        >>> analyzer = TechnicalAnalyzer.test_analyzer()
+        >>> Visualizer.test_visualizer(analyzer.df)
+        """
+        if df is None:
+            df = TechnicalAnalyzer.test_analyzer().df
+    
+        viz = cls(df, rows=2, cols=1)
+        (viz.draw_candlestick(row=1, col=1)
+        .draw_volume(row=2, col=1)
+        .show())

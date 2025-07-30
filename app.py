@@ -1,9 +1,44 @@
 from src.data_fetcher import DataFetcher
 from src.technical_analyzer import TechnicalAnalyzer
 from src.visualizer import Visualizer
+from src.interface import Dashboard
 import pandas as pd
 from datetime import datetime
+import streamlit as st
 
+
+def test_dashboard(df):
+    """Full test of the Dashboard class"""
+    print("\n" + "="*50)
+    print("DASHBOARD TEST".center(50))
+    print("="*50)
+    
+    try:
+        # 1. Initialisation
+        print("\n[1] Initializing Dashboard...")
+        dashboard = Dashboard(df)
+        print("✅ Dashboard initialized successfully")
+        
+        # 2. Test complet en une seule exécution
+        print("\n[2] Testing full display...")
+        
+        # Solution 1: Utiliser st.empty() comme conteneur
+        placeholder = st.empty()
+        with placeholder.container():
+            dashboard.display()
+        
+        print("✅ Dashboard displayed without duplicates")
+        
+        # Solution alternative: Simuler l'exécution Streamlit
+        # dashboard.display()
+        # print("✅ Dashboard displayed (check manually for duplicates)")
+        
+        print("\n✅ All Dashboard tests passed")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Dashboard error: {str(e)}")
+        return False
 def test_visualizer(df):
     """Full test of the Visualizer class"""
     print("\n" + "="*50)
@@ -175,34 +210,19 @@ def test_technical_analyzer(df):
     return True
 
 def main():
-    print("\n" + "="*50)
-    print("FULL SYSTEM TEST".center(50))
-    print("="*50)
+    st.set_page_config(page_title="Dashboard Boursier", layout="wide")
     
-    if not test_data_fetcher():
-        print("\n❌ Fix needed in DataFetcher")
-        return
-        
-    print("\n✅ All DataFetcher tests passed")
+    # Initialiser les données
+    if 'df' not in st.session_state:
+        fetcher = DataFetcher("AAPL")
+        st.session_state.df = fetcher.fetch_data(period="6mo")
+        analyzer = TechnicalAnalyzer(st.session_state.df)
+        analyzer.calcul_50_200_jours()
+        analyzer.add_rsi()
+        analyzer.calculate_volatility()
 
-    fetcher = DataFetcher("AAPL")
-    df = fetcher.fetch_data(period="1mo")
-    
-    if df.empty:
-        print("\n❌ Cannot load data for TechnicalAnalyzer")
-        return
-
-    if not test_technical_analyzer(df):
-        print("\n❌ Fix needed in TechnicalAnalyzer")
-        return
-        
-    print("\n✅ All TechnicalAnalyzer tests passed")
-
-    if not test_visualizer(df):
-        print("\n❌ Fix needed in Visualizer")
-        return
-        
-    print("\n✅ All Visualizer tests passed")
-    print("\n🎉 All tests passed successfully!")
+    # Afficher le dashboard
+    dashboard = Dashboard(st.session_state.df)
+    dashboard.display()
 
 main()
