@@ -1,0 +1,17 @@
+# Core
+python>=3.8
+
+# Data & Analysis
+yfinance==0.2.65
+pandas==2.3.0
+numpy==2.2.2
+
+# Visualization
+plotly==6.2.0
+
+# Web App
+streamlit==1.47.0
+
+# Additional dependencies
+feedparser==6.0.11  # Pour NewsFetcher
+requests==2.32.4    # Pour les appels API (si utilisés)
