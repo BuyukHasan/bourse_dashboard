@@ -174,7 +174,36 @@ class Visualizer:
             overlay=overlay
         )
         return self
-
+    def draw_multiple_tickers(self, tickers_data, overlay=False, colors=None):
+        """
+        Affiche plusieurs séries de prix sur le même graphique
+    
+        Args:
+            tickers_data (dict): {ticker: DataFrame}
+            overlay (bool): Superposer sur le graphique actuel
+            colors (list): Liste de couleurs pour chaque série
+        """
+        if not isinstance(tickers_data, dict):
+            raise ValueError("tickers_data doit être un dictionnaire {ticker: df}")
+    
+        if not colors:
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    
+        for i, (ticker, df) in enumerate(tickers_data.items()):
+            if 'Clôt' not in df.columns:
+                raise ValueError(f"DataFrame pour {ticker} manque la colonne 'Clôt'")
+        
+            self._add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df['Clôt'],
+                    name=ticker,
+                    line=dict(color=colors[i % len(colors)], width=2),
+                    mode='lines'
+                ),
+                overlay=overlay
+            )
+        return self
     def show(self, log_scale=False):
         """Displays the final chart."""
         self.fig.update_layout(

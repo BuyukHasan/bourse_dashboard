@@ -31,7 +31,7 @@ class TechnicalAnalyzer:
 
         self.df['MA_50'] = self.df['Clôt'].rolling(window=50).mean()
         self.df['MA_200'] = self.df['Clôt'].rolling(window=200).mean()
-        self.df[['MA_50', 'MA_200']] = self.df[['MA_50', 'MA_200']].fillna(method='bfill')
+        self.df[['MA_50', 'MA_200']] = self.df[['MA_50', 'MA_200']].bfill()
 
     def add_rsi(self, window=14):
         """
