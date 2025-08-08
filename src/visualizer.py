@@ -1,27 +1,26 @@
 import plotly.graph_objects as go
 import pandas as pd
 import streamlit as st
-from plotly.subplots import make_subplots
 from src.technical_analyzer import TechnicalAnalyzer
+from plotly.subplots import make_subplots
 
 class Visualizer:
     def __init__(self, data_frame, rows=2, columns=2, row_heights=None):
         """
-        Initializes the visualizer with a grid of subplots.
-
+        Initialize visualizer with subplot grid
         Args:
-            data_frame (pd.DataFrame): DataFrame containing the data
-            rows (int): Number of subplot rows
-            columns (int): Number of subplot columns
-            row_heights (list): List of relative row heights
+            data_frame (pd.DataFrame): Input data
+            rows (int): Number of rows
+            columns (int): Number of columns
+            row_heights (list): Relative row heights
         """
         self.df = data_frame
         self.max_row = rows
         self.max_column = columns
         self.current_row = 1
         self.current_col = 1
-        self.last_row = 1  # Last used position
-        self.last_col = 1  # Last used position
+        self.last_row = 1
+        self.last_col = 1
         self.occupied_positions = set()
         
         if row_heights is None:
@@ -36,7 +35,7 @@ class Visualizer:
         )
 
     def reset_position(self):
-        """Resets the pointer to position (1,1)"""
+        """Reset pointer to position (1,1)"""
         self.current_row = 1
         self.current_col = 1
         self.last_row = 1
@@ -45,7 +44,7 @@ class Visualizer:
         return self
 
     def _next_position(self):
-        """Handles automatic subplot positioning."""
+        """Handle automatic subplot positioning"""
         current_pos = (self.current_row, self.current_col)
         self.occupied_positions.add(current_pos)
         
@@ -56,35 +55,35 @@ class Visualizer:
             if self.current_row < self.max_row:
                 self.current_row += 1
             else:
-                print("Warning: All subplot positions are occupied.")
+                print("Warning: All subplot positions occupied")
                 self.current_row, self.current_col = 1, 1
         
         return current_pos
     
     def _add_trace(self, trace, overlay=False, row=None, col=None):
-        """Internal method to add a trace to the plot."""
+        """Internal method to add trace"""
         if overlay:
-            row, col = self.last_row, self.last_col  # Use last used position
+            row, col = self.last_row, self.last_col
         elif row is None or col is None:
             row, col = self._next_position()
         
         self.fig.add_trace(trace, row=row, col=col)
-        self.last_row, self.last_col = row, col  # Save last used position
+        self.last_row, self.last_col = row, col
         return self
 
     def _check_columns(self, required_columns):
-        """Checks that required columns are present in the DataFrame."""
+        """Check required columns exist"""
         missing = [col for col in required_columns if col not in self.df.columns]
         if missing:
             raise ValueError(f"Missing columns: {missing}")
 
     def MA_draw(self, overlay=False):
-        """Displays closing price and moving averages."""
-        self._check_columns(['MA_200', 'MA_50', 'Clôt'])
+        """Display closing price and moving averages"""
+        self._check_columns(['MA_200', 'MA_50', 'Close'])
         dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
         
         traces = [
-            go.Scatter(x=dates, y=self.df['Clôt'], name='Close Price', line=dict(color='blue')),
+            go.Scatter(x=dates, y=self.df['Close'], name='Close Price', line=dict(color='blue')),
             go.Scatter(x=dates, y=self.df['MA_50'], name='MA 50', line=dict(color='orange', dash='dot')),
             go.Scatter(x=dates, y=self.df['MA_200'], name='MA 200', line=dict(color='red', dash='dash'))
         ]
@@ -94,7 +93,7 @@ class Visualizer:
         return self
 
     def Rsi_draw(self, show_zones=True, overlay=False):
-        """Displays the RSI indicator with optional threshold zones."""
+        """Display RSI indicator with threshold zones"""
         self._check_columns(['rsi'])
         dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
         
@@ -126,17 +125,17 @@ class Visualizer:
         return self
 
     def draw_candlestick(self, overlay=False, increasing_color='green', decreasing_color='red'):
-        """Adds a candlestick chart to the figure."""
-        self._check_columns(['Ouv', 'Haut', 'Bas', 'Clôt'])
+        """Add candlestick chart"""
+        self._check_columns(['Open', 'High', 'Low', 'Close'])
         dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
     
         self._add_trace(
             go.Candlestick(
                 x=dates,
-                open=self.df['Ouv'],
-                high=self.df['Haut'],
-                low=self.df['Bas'],
-                close=self.df['Clôt'],
+                open=self.df['Open'],
+                high=self.df['High'],
+                low=self.df['Low'],
+                close=self.df['Close'],
                 name='Candlesticks',
                 increasing=dict(line=dict(color=increasing_color)),
                 decreasing=dict(line=dict(color=decreasing_color))
@@ -146,7 +145,7 @@ class Visualizer:
         return self
 
     def draw_volume(self, overlay=False, color='blue'):
-        """Displays traded volume as a bar chart."""
+        """Display traded volume"""
         self._check_columns(['Volume'])
         dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
     
@@ -160,10 +159,10 @@ class Visualizer:
         return self
 
     def draw_cumulative_returns(self, overlay=False, color='blue'):
-        """Plots cumulative returns."""
-        self._check_columns(['rendements'])
+        """Plot cumulative returns"""
+        self._check_columns(['returns'])
         dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
-        cumulative_returns = (1 + self.df['rendements']).cumprod() - 1
+        cumulative_returns = (1 + self.df['returns']).cumprod() - 1
         
         self._add_trace(
             go.Scatter(
@@ -175,29 +174,29 @@ class Visualizer:
             overlay=overlay
         )
         return self
+
     def draw_multiple_tickers(self, tickers_data, overlay=False, colors=None):
         """
-        Affiche plusieurs séries de prix sur le même graphique
-    
+        Display multiple price series
         Args:
             tickers_data (dict): {ticker: DataFrame}
-            overlay (bool): Superposer sur le graphique actuel
-            colors (list): Liste de couleurs pour chaque série
+            overlay (bool): Overlay on current plot
+            colors (list): Color list for each series
         """
         if not isinstance(tickers_data, dict):
-            raise ValueError("tickers_data doit être un dictionnaire {ticker: df}")
+            raise ValueError("tickers_data must be a {ticker: df} dictionary")
     
         if not colors:
             colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     
         for i, (ticker, df) in enumerate(tickers_data.items()):
-            if 'Clôt' not in df.columns:
-                raise ValueError(f"DataFrame pour {ticker} manque la colonne 'Clôt'")
+            if 'Close' not in df.columns:
+                raise ValueError(f"DataFrame for {ticker} missing 'Close' column")
         
             self._add_trace(
                 go.Scatter(
                     x=df.index,
-                    y=df['Clôt'],
+                    y=df['Close'],
                     name=ticker,
                     line=dict(color=colors[i % len(colors)], width=2),
                     mode='lines'
@@ -205,8 +204,9 @@ class Visualizer:
                 overlay=overlay
             )
         return self
+
     def show(self, log_scale=False, title=None):
-        """Affiche le graphique final avec un style amélioré"""
+        """Display final chart with improved style"""
         self.fig.update_layout(
             template="plotly_white",
             hovermode='x unified',
@@ -233,16 +233,17 @@ class Visualizer:
         if log_scale:
             self.fig.update_yaxes(type="log")
         
-        # Ajout de lignes de grille
         self.fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='LightGrey')
         self.fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor='LightGrey')
     
         st.plotly_chart(self.fig, use_container_width=True)
         return self
-    def test_visualizer(cls, df=None):
-        """Génère un rapport de test visuel
     
-        Exemple:
+    @classmethod
+    def test_visualizer(cls, df=None):
+        """
+        Generate visual test report
+        Example:
         >>> analyzer = TechnicalAnalyzer.test_analyzer()
         >>> Visualizer.test_visualizer(analyzer.df)
         """

@@ -2,60 +2,64 @@ import pandas as pd
 from src.data_fetcher import DataFetcher
 from src.technical_analyzer import TechnicalAnalyzer
 import numpy as np
+
 class PortfolioManager:
     def __init__(self, tickers_weights):
         """
-        Initialise le gestionnaire de portefeuille avec des poids d'actifs.
+        Initialize portfolio manager with asset weights.
         
         Args:
-            tickers_weights (dict): Dictionnaire {ticker: poids} (ex: {"AAPL": 0.6, "MSFT": 0.4})
+            tickers_weights (dict): {ticker: weight} dictionary (ex: {"AAPL": 0.6, "MSFT": 0.4})
         """
-        self.tw = tickers_weights
-        self.data = {}  # Stocke les DataFrames par ticker
-        self.returns = None  # DataFrame des rendements pondérés
+        self.weights = tickers_weights
+        self.data = {}  # Stores DataFrames by ticker
+        self.returns = None  # DataFrame of weighted returns
+    
     def fetch_portfolio_data(self, period="1y"):
         """
-        Récupère les données pour tous les tickers du portefeuille.
+        Fetch data for all portfolio tickers.
         
         Args:
-            period (str): Période historique (ex: "6mo", "1y")
+            period (str): Historical period (ex: "6mo", "1y")
         """
-        for ticker in self.tw.keys():
+        for ticker in self.weights.keys():
             df = DataFetcher(ticker).fetch_data(period=period)
             analyzer = TechnicalAnalyzer(df)
-            analyzer.Add_column_Performance()  # Ajoute les rendements journaliers
+            analyzer.add_performance_column()  # Add daily returns
             self.data[ticker] = analyzer.df
+    
     def calculate_weighted_returns(self):
         """
-        Calcule les rendements journaliers pondérés du portefeuille.
+        Calculate weighted daily portfolio returns.
         
         Returns:
-            pd.DataFrame: DataFrame avec les colonnes:
-                - 'Portfolio_Return' (rendement quotidien du portefeuille)
-                - 'Cumulative_Return' (performance cumulée)
+            pd.DataFrame: DataFrame with columns:
+                - 'Portfolio_Return' (daily portfolio return)
+                - 'Cumulative_Return' (cumulative performance)
         """
         if not self.data:
-            raise ValueError("Aucune donnée disponible. Exécutez fetch_portfolio_data() d'abord.")
+            raise ValueError("No data available. Run fetch_portfolio_data() first.")
         
-        # Crée un DataFrame consolidé des rendements pondérés
+        # Create consolidated DataFrame of weighted returns
         portfolio_returns = pd.DataFrame()
         
         for ticker, df in self.data.items():
-            portfolio_returns[ticker] = df['Daily_Return'] * self.tw[ticker]
+            portfolio_returns[ticker] = df['Daily_Return'] * self.weights[ticker]
         
-        # Somme des rendements pondérés
+        # Sum of weighted returns
         portfolio_returns['Portfolio_Return'] = portfolio_returns.sum(axis=1)
         
-        # Calcul du rendement cumulé
+        # Calculate cumulative return
         portfolio_returns['Cumulative_Return'] = (
             (1 + portfolio_returns['Portfolio_Return']).cumprod() - 1
-        ) * 100  # En pourcentage
+        ) * 100  # In percentage
         
         self.returns = portfolio_returns
         return portfolio_returns
+    
     def get_performance_metrics(self):
         """
-        Calcule les métriques clés du portefeuille.
+        Calculate key portfolio metrics.
         
         Returns:
             dict: {
@@ -65,20 +69,18 @@ class PortfolioManager:
             }
         """
         if self.returns is None:
-            raise ValueError("Exécutez calculate_weighted_returns() d'abord.")
+            raise ValueError("Run calculate_weighted_returns() first.")
         
         metrics = {}
         daily_returns = self.returns['Portfolio_Return']
         
-        # Rendement annualisé
+        # Annualized return
         metrics['annualized_return'] = ((1 + daily_returns.mean()) ** 252 - 1) * 100
         
-        # Volatilité annualisée
+        # Annualized volatility
         metrics['volatility'] = daily_returns.std() * np.sqrt(252) * 100
         
-        # Ratio de Sharpe (suppose un taux sans risque de 0%)
-        metrics['sharpe_ratio'] = (
-            daily_returns.mean() / daily_returns.std() * np.sqrt(252)
-        )
+        # Sharpe ratio (assumes 0% risk-free rate)
+        metrics['sharpe_ratio'] = daily_returns.mean() / daily_returns.std() * np.sqrt(252)
         
         return metrics

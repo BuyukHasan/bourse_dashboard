@@ -1,7 +1,7 @@
 from src.data_fetcher import DataFetcher
 from src.technical_analyzer import TechnicalAnalyzer
 from src.visualizer import Visualizer
-from src.interface import Dashboard
+from src.dashboard import Dashboard
 from src.portfolio_manager import PortfolioManager
 from src.reddit_analyzer import RedditSentiment
 from src.news_fetcher import NewsFetcher
@@ -11,41 +11,32 @@ import plotly.graph_objects as go
 from datetime import datetime
 import streamlit as st
 
-
 def test_dashboard(df):
-    """Full test of the Dashboard class"""
+    """Full test of Dashboard class"""
     print("\n" + "="*50)
     print("DASHBOARD TEST".center(50))
     print("="*50)
     
     try:
-        # 1. Initialisation
         print("\n[1] Initializing Dashboard...")
         dashboard = Dashboard(df)
         print("✅ Dashboard initialized successfully")
         
-        # 2. Test complet en une seule exécution
         print("\n[2] Testing full display...")
-        
-        # Solution 1: Utiliser st.empty() comme conteneur
         placeholder = st.empty()
         with placeholder.container():
             dashboard.display()
         
         print("✅ Dashboard displayed without duplicates")
-        
-        # Solution alternative: Simuler l'exécution Streamlit
-        # dashboard.display()
-        # print("✅ Dashboard displayed (check manually for duplicates)")
-        
         print("\n✅ All Dashboard tests passed")
         return True
         
     except Exception as e:
         print(f"❌ Dashboard error: {str(e)}")
         return False
+
 def test_visualizer(df):
-    """Full test of the Visualizer class"""
+    """Full test of Visualizer class"""
     print("\n" + "="*50)
     print("VISUALIZER TEST".center(50))
     print("="*50)
@@ -93,7 +84,7 @@ def test_visualizer(df):
         return False
 
 def test_data_fetcher():
-    """Full test of DataFetcher with robust error handling"""
+    """Full test of DataFetcher with error handling"""
     print("\n" + "="*50)
     print("DATA_FETCHER TEST".center(50))
     print("="*50)
@@ -107,21 +98,9 @@ def test_data_fetcher():
         return False
 
     tests = [
-        {
-            "name": "6-month data",
-            "params": {"period": "6mo"},
-            "min_rows": 120
-        },
-        {
-            "name": "1-month data",
-            "params": {"period": "1mo"}, 
-            "min_rows": 20
-        },
-        {
-            "name": "Specific date range",
-            "params": {"start": "2025-07-01", "end": "2025-07-15"},
-            "min_rows": 10
-        }
+        {"name": "6-month data", "params": {"period": "6mo"}, "min_rows": 120},
+        {"name": "1-month data", "params": {"period": "1mo"}, "min_rows": 20},
+        {"name": "Specific date range", "params": {"start": "2025-07-01", "end": "2025-07-15"}, "min_rows": 10}
     ]
 
     for test in tests:
@@ -139,10 +118,10 @@ def test_data_fetcher():
 
     print("\n[3] Real-time data test...")
     try:
-        realtime = fetcher.RealTimeData()
+        realtime = fetcher.real_time_data()
         if not realtime.empty:
             print("✅ Latest quote:")
-            print(realtime[['Ouv', 'Haut', 'Bas', 'Clôt']])
+            print(realtime[['Open', 'High', 'Low', 'Close']])
         else:
             print("⚠️ No real-time data (market closed?)")
     except Exception as e:
@@ -152,7 +131,7 @@ def test_data_fetcher():
     return True
 
 def test_technical_analyzer(df):
-    """Full test of the TechnicalAnalyzer class"""
+    """Full test of TechnicalAnalyzer class"""
     print("\n" + "="*50)
     print("TECHNICAL_ANALYZER TEST".center(50))
     print("="*50)
@@ -165,36 +144,12 @@ def test_technical_analyzer(df):
         return False
 
     tests = [
-        {
-            "name": "50/200-day Moving Averages",
-            "func": analyzer.calcul_50_200_jours,
-            "check_cols": ['MA_50', 'MA_200']
-        },
-        {
-            "name": "RSI Indicator",
-            "func": lambda: analyzer.add_rsi(14),
-            "check_cols": ['rsi']
-        },
-        {
-            "name": "Trading Signals",
-            "func": analyzer.Add_column_Signal,
-            "check_cols": ['Signal']
-        },
-        {
-            "name": "Daily Performance",
-            "func": analyzer.Add_column_Performance,
-            "check_cols": ['Daily_Return']
-        },
-        {
-            "name": "Bollinger Bands",
-            "func": lambda: analyzer.Bollinger_Bands(window=20),
-            "check_cols": ['MA_BB', 'Sup_Band', 'Inf_Band']
-        },
-        {
-            "name": "Return Calculation",
-            "func": analyzer.Add_columns_rendements,
-            "check_cols": ['rendements']
-        }
+        {"name": "50/200-day Moving Averages", "func": analyzer.compute_50_200_days, "check_cols": ['MA_50', 'MA_200']},
+        {"name": "RSI Indicator", "func": lambda: analyzer.add_rsi(14), "check_cols": ['rsi']},
+        {"name": "Trading Signals", "func": analyzer.add_signal_column, "check_cols": ['Signal']},
+        {"name": "Daily Performance", "func": analyzer.add_performance_column, "check_cols": ['Daily_Return']},
+        {"name": "Bollinger Bands", "func": lambda: analyzer.bollinger_bands(window=20), "check_cols": ['MA_BB', 'Upper_Band', 'Lower_Band']},
+        {"name": "Return Calculation", "func": analyzer.add_returns_columns, "check_cols": ['returns']}
     ]
 
     for test in tests:
@@ -210,62 +165,59 @@ def test_technical_analyzer(df):
             print(f"❌ Error: {str(e)}")
 
     print("\n📊 Final data summary:")
-    print(analyzer.df.tail(3)[['Clôt', 'MA_50', 'MA_200', 'rsi', 'Signal', 'Daily_Return']])
+    print(analyzer.df.tail(3)[['Close', 'MA_50', 'MA_200', 'rsi', 'Signal', 'Daily_Return']])
     
     return True
+
 def test_multi_asset_comparison():
-    """Test de la comparaison multi-actifs"""
+    """Multi-asset comparison test"""
     print("\n" + "="*50)
-    print("COMPARAISON MULTI-ACTIFS TEST".center(50))
+    print("MULTI-ASSET COMPARISON TEST".center(50))
     print("="*50)
     
     try:
-        # 1. Récupération des données
-        print("\n[1] Récupération des données pour 3 actifs...")
+        print("\n[1] Fetching data for 3 assets...")
         tickers = ["AAPL", "MSFT", "GOOGL"]
         data = {}
         
         for t in tickers:
             df = DataFetcher(t).fetch_data(period="6mo")
             analyzer = TechnicalAnalyzer(df)
-            analyzer.calcul_50_200_jours()
+            analyzer.compute_50_200_days()
             data[t] = analyzer.df
-            print(f"✅ {t}: {len(df)} jours récupérés")
+            print(f"✅ {t}: {len(df)} days retrieved")
         
-        # 2. Création du visualiseur
-        print("\n[2] Création du graphique comparatif...")
+        print("\n[2] Creating comparison chart...")
         viz = Visualizer(data["AAPL"], rows=1, columns=1)
         
-        # 3. Affichage des comparaisons
-        print("\n[3] Affichage des courbes comparatives")
+        print("\n[3] Displaying comparison curves")
         viz.draw_multiple_tickers({
             "Apple": data["AAPL"],
             "Microsoft": data["MSFT"],
             "Google": data["GOOGL"]
         })
         
-        # Configuration du layout
         viz.fig.update_layout(
-            title="Comparaison des performances",
-            yaxis_title="Prix de clôture ($)",
+            title="Performance Comparison",
+            yaxis_title="Closing Price ($)",
             hovermode="x unified"
         )
         
         st.plotly_chart(viz.fig, use_container_width=True)
-        print("\n✅ Test de comparaison multi-actifs réussi")
+        print("\n✅ Multi-asset comparison test successful")
         return True
         
     except Exception as e:
-        print(f"❌ Erreur lors de la comparaison: {str(e)}")
+        print(f"❌ Comparison error: {str(e)}")
         return False
+
 def portfolio_mode():
-    st.title("🎯 Portefeuille Virtuel")
+    st.title("🎯 Virtual Portfolio")
     
-    # 1. Sélection des actifs et poids
     col1, col2 = st.columns(2)
     with col1:
         selected_tickers = st.multiselect(
-            "Choisissez les actifs", 
+            "Select assets", 
             ["AAPL", "TSLA", "MSFT", "GOOGL"],
             default=["AAPL", "MSFT"]
         )
@@ -273,48 +225,44 @@ def portfolio_mode():
         weights = []
         for ticker in selected_tickers:
             weight = st.number_input(
-                f"Poids de {ticker} (%)", 
+                f"Weight of {ticker} (%)", 
                 min_value=0, max_value=100, value=50
             )
-            weights.append(weight / 100)  # Conversion en décimal
+            weights.append(weight / 100)
     
-    # 2. Validation des poids
     if sum(weights) != 1.0:
-        st.error("La somme des poids doit être égale à 100% !")
+        st.error("Sum of weights must equal 100%!")
         return
     
     tickers_weights = dict(zip(selected_tickers, weights))
     
-    # 3. Simulation
-    if st.button("Lancer la simulation"):
+    if st.button("Run simulation"):
         pm = PortfolioManager(tickers_weights)
         pm.fetch_portfolio_data(period="6mo")
         returns = pm.calculate_weighted_returns()
         metrics = pm.get_performance_metrics()
         
-        # Affichage des résultats
         fig = Visualizer(returns, rows=1, columns=1)
         fig._add_trace(
             go.Scatter(
                 x=returns.index,
                 y=returns['Cumulative_Return'],
-                name="Performance du Portefeuille",
+                name="Portfolio Performance",
                 line=dict(color="royalblue", width=3)
             ),
             row=1, col=1
         )
         st.plotly_chart(fig.fig, use_container_width=True)
         
-        # KPIs
         col1, col2, col3 = st.columns(3)
-        col1.metric("Rendement Annualisé", f"{metrics['annualized_return']:.2f}%")
-        col2.metric("Volatilité", f"{metrics['volatility']:.2f}%")
-        col3.metric("Ratio de Sharpe", f"{metrics['sharpe_ratio']:.2f}")
-# Ajoutez ces nouvelles fonctions de test
+        col1.metric("Annualized Return", f"{metrics['annualized_return']:.2f}%")
+        col2.metric("Volatility", f"{metrics['volatility']:.2f}%")
+        col3.metric("Sharpe Ratio", f"{metrics['sharpe_ratio']:.2f}")
+
 def test_news_fetcher():
-    """Test du NewsFetcher avec simulation"""
+    """NewsFetcher test with simulation"""
     print("\n" + "="*50)
-    print("TEST NEWS FETCHER".center(50))
+    print("NEWS FETCHER TEST".center(50))
     print("="*50)
     
     try:
@@ -322,53 +270,51 @@ def test_news_fetcher():
         news = fetcher.get_company_news("AAPL")
         
         if not news:
-            print("❌ Aucune nouvelle récupérée")
+            print("❌ No news retrieved")
             return False
         
-        print(f"✅ {len(news)} articles récupérés")
-        for i, item in enumerate(news[:3]):  # Affiche les 3 premiers
+        print(f"✅ {len(news)} articles retrieved")
+        for i, item in enumerate(news[:3]):
             print(f"{i+1}. {item['title']} ({item['sentiment']})")
         
         return True
     except Exception as e:
-        print(f"❌ Erreur: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return False
 
 def test_reddit_sentiment():
-    """Test du RedditSentiment avec simulation"""
+    """RedditSentiment test with simulation"""
     print("\n" + "="*50)
-    print("TEST REDDIT SENTIMENT".center(50))
+    print("REDDIT SENTIMENT TEST".center(50))
     print("="*50)
     
     try:
         analyzer = RedditSentiment()
         data = analyzer.analyze_ticker("TSLA")
         
-        print(f"✅ Résultats: Positif={data['positive']}, Neutre={data['neutral']}, Négatif={data['negative']}")
+        print(f"✅ Results: Positive={data['positive']}, Neutral={data['neutral']}, Negative={data['negative']}")
         print(f"Total: {data['total']}")
         
         return True
     except Exception as e:
-        print(f"❌ Erreur: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return False
 
 def test_portfolio_manager():
-    """Test du PortfolioManager"""
+    """PortfolioManager test"""
     print("\n" + "="*50)
-    print("TEST PORTFOLIO MANAGER".center(50))
+    print("PORTFOLIO MANAGER TEST".center(50))
     print("="*50)
     
     try:
-        # Création d'un portefeuille fictif
         tickers_weights = {"AAPL": 0.6, "MSFT": 0.4}
         pm = PortfolioManager(tickers_weights)
         
-        # Simulation de données
         dates = pd.date_range(end=datetime.today(), periods=100, freq='D')
         data = {}
         for ticker in tickers_weights:
             df = pd.DataFrame({
-                'Clôt': [random.uniform(100, 200) for _ in range(100)],
+                'Close': [random.uniform(100, 200) for _ in range(100)],
                 'Daily_Return': [random.uniform(-0.05, 0.05) for _ in range(100)]
             }, index=dates)
             data[ticker] = df
@@ -376,73 +322,67 @@ def test_portfolio_manager():
         pm.data = data
         returns = pm.calculate_weighted_returns()
         
-        # Vérification des résultats
         if 'Portfolio_Return' not in returns.columns:
-            print("❌ Colonne Portfolio_Return manquante")
+            print("❌ Missing Portfolio_Return column")
             return False
         
         metrics = pm.get_performance_metrics()
-        print(f"✅ Rendement annualisé: {metrics['annualized_return']:.2f}%")
-        print(f"✅ Volatilité: {metrics['volatility']:.2f}%")
-        print(f"✅ Ratio de Sharpe: {metrics['sharpe_ratio']:.2f}")
+        print(f"✅ Annualized return: {metrics['annualized_return']:.2f}%")
+        print(f"✅ Volatility: {metrics['volatility']:.2f}%")
+        print(f"✅ Sharpe ratio: {metrics['sharpe_ratio']:.2f}")
         
         return True
     except Exception as e:
-        print(f"❌ Erreur: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return False
+
 def test_alert_system():
-    """Test du système d'alertes"""
+    """Alert system test"""
     print("\n" + "="*50)
-    print("TEST ALERT SYSTEM".center(50))
+    print("ALERT SYSTEM TEST".center(50))
     print("="*50)
     
     try:
-        # Création de données de test
         dates = pd.date_range(end=datetime.today(), periods=10, freq='D')
         df = pd.DataFrame({
-            'Clôt': [150, 152, 155, 153, 156, 158, 160, 159, 162, 165],
+            'Close': [150, 152, 155, 153, 156, 158, 160, 159, 162, 165],
             'rsi': [30, 35, 40, 45, 50, 55, 60, 65, 70, 75],
-            'Volatilite': [0.01, 0.02, 0.015, 0.018, 0.02, 0.022, 0.025, 0.03, 0.028, 0.026],
+            'Volatility': [0.01, 0.02, 0.015, 0.018, 0.02, 0.022, 0.025, 0.03, 0.028, 0.026],
             'MA_50': [150, 151, 152, 153, 154, 155, 156, 157, 158, 159],
             'MA_200': [145, 146, 147, 148, 149, 150, 151, 152, 153, 154]
         }, index=dates)
         
-        # Création du dashboard
         dashboard = Dashboard(df)
         
-        # Configuration des alertes de test
-        st.session_state.alertes = [
-            {'indicateur': 'RSI', 'condition': 'Supérieur à', 'seuil': 70, 'active': True, 'declenchee': False},
-            {'indicateur': 'Prix de clôture', 'condition': 'Supérieur à', 'seuil': 160, 'active': True, 'declenchee': False},
-            {'indicateur': 'Croisement MA', 'condition': 'Croise vers le haut', 'seuil': 0, 'active': True, 'declenchee': False}
+        st.session_state.alerts = [
+            {'indicator': 'RSI', 'condition': 'Above', 'threshold': 70, 'active': True, 'triggered': False},
+            {'indicator': 'Closing Price', 'condition': 'Above', 'threshold': 160, 'active': True, 'triggered': False},
+            {'indicator': 'MA Crossover', 'condition': 'Crosses above', 'threshold': 0, 'active': True, 'triggered': False}
         ]
         
-        # Vérification des alertes
         dashboard._check_alerts()
         
-        # Vérification des alertes déclenchées
-        alerts_triggered = [a['declenchee'] for a in st.session_state.alertes]
+        alerts_triggered = [a['triggered'] for a in st.session_state.alerts]
         if all(alerts_triggered):
-            print("✅ Toutes les alertes ont été déclenchées")
+            print("✅ All alerts triggered")
             return True
         else:
-            print(f"❌ Alertes non déclenchées: {alerts_triggered}")
+            print(f"❌ Alerts not triggered: {alerts_triggered}")
             return False
     except Exception as e:
-        print(f"❌ Erreur: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return False
-# Ajout du cache pour les données initiales
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_initial_data():
     fetcher = DataFetcher("AAPL")
     df = fetcher.fetch_data(period="6mo")
     analyzer = TechnicalAnalyzer(df)
-    analyzer.calcul_50_200_jours()
+    analyzer.compute_50_200_days()
     analyzer.add_rsi()
     analyzer.calculate_volatility()
     return analyzer.df
 
-# Ajout du cache pour la comparaison multi-actifs
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_comparison_data(tickers, start_date, end_date):
     compare_data = {}
@@ -450,58 +390,56 @@ def load_comparison_data(tickers, start_date, end_date):
         df = DataFetcher(t).fetch_data(start=start_date, end=end_date)
         if not df.empty:
             analyzer = TechnicalAnalyzer(df)
-            analyzer.calcul_50_200_jours()
+            analyzer.compute_50_200_days()
             compare_data[t] = analyzer.df
     return compare_data
+
 def main():
-    st.set_page_config(page_title="Dashboard Boursier", layout="wide")
+    st.set_page_config(page_title="Stock Market Dashboard", layout="wide")
     
     mode = st.sidebar.selectbox(
-        "Choisir un mode",
+        "Select mode",
         [
-            "Dashboard Action Unique", 
-            "Comparaison Multi-Actifs", 
-            "Portefeuille Virtuel",
-            "Tests Unitaires"
+            "Single Stock Dashboard", 
+            "Multi-Asset Comparison", 
+            "Virtual Portfolio",
+            "Unit Tests"
         ],
         key="mode_selector_unique"
     )
     
-    # Mode Dashboard Action Unique
-    if mode == "Dashboard Action Unique":
+    if mode == "Single Stock Dashboard":
         if 'df' not in st.session_state:
             fetcher = DataFetcher("AAPL")
             df = fetcher.fetch_data(period="6mo")
             analyzer = TechnicalAnalyzer(df)
-            analyzer.calcul_50_200_jours()
+            analyzer.compute_50_200_days()
             analyzer.add_rsi()
             analyzer.calculate_volatility()
-            # Générer les colonnes nécessaires pour rendements
-            analyzer.Add_column_Signal()
-            analyzer.Add_column_Performance()
-            analyzer.Add_columns_rendements()
+            analyzer.add_signal_column()
+            analyzer.add_performance_column()
+            analyzer.add_returns_columns()
             st.session_state.df = analyzer.df
         
         dashboard = Dashboard(st.session_state.df)
         dashboard.display()
     
-    # Mode Comparaison Multi-Actifs
-    elif mode == "Comparaison Multi-Actifs":
-        st.title("Comparaison Multi-Actifs")
+    elif mode == "Multi-Asset Comparison":
+        st.title("Multi-Asset Comparison")
         
         col1, col2 = st.columns(2)
         with col1:
             tickers = st.multiselect(
-                "Sélectionnez les actions à comparer",
+                "Select stocks to compare",
                 ["AAPL", "TSLA", "MSFT", "AMZN", "GOOGL"],
                 default=["AAPL", "MSFT", "GOOGL"],
                 key="comparison_tickers"
             )
         with col2:
-            start_date = st.date_input("Date de début", value=datetime.now().replace(year=datetime.now().year-1))
-            end_date = st.date_input("Date de fin", value=datetime.now())
+            start_date = st.date_input("Start date", value=datetime.now().replace(year=datetime.now().year-1))
+            end_date = st.date_input("End date", value=datetime.now())
         
-        if st.button("Lancer la comparaison", key="run_comparison"):
+        if st.button("Run comparison", key="run_comparison"):
             compare_data = {}
             progress_bar = st.progress(0)
             
@@ -510,17 +448,17 @@ def main():
                     df = DataFetcher(t).fetch_data(start=start_date, end=end_date)
                     if not df.empty:
                         analyzer = TechnicalAnalyzer(df)
-                        analyzer.calcul_50_200_jours()
+                        analyzer.compute_50_200_days()
                         analyzer.add_rsi()
                         analyzer.calculate_volatility()
-                        analyzer.Add_column_Signal()
-                        analyzer.Add_column_Performance()
-                        analyzer.Add_columns_rendements()
+                        analyzer.add_signal_column()
+                        analyzer.add_performance_column()
+                        analyzer.add_returns_columns()
                         compare_data[t] = analyzer.df
                     else:
-                        st.warning(f"Aucune donnée disponible pour {t}")
+                        st.warning(f"No data available for {t}")
                 except Exception as e:
-                    st.error(f"Erreur avec {t}: {str(e)}")
+                    st.error(f"Error with {t}: {str(e)}")
                 progress_bar.progress((i+1) / len(tickers))
             
             if compare_data:
@@ -531,45 +469,43 @@ def main():
             viz.draw_multiple_tickers(st.session_state.compare_data)
             
             viz.fig.update_layout(
-                title="Comparaison des performances",
-                yaxis_title="Prix de clôture ($)",
+                title="Performance Comparison",
+                yaxis_title="Closing Price ($)",
                 hovermode="x unified",
                 height=600
             )
             
             st.plotly_chart(viz.fig, use_container_width=True)
     
-    # Mode Portefeuille Virtuel
-    elif mode == "Portefeuille Virtuel":
+    elif mode == "Virtual Portfolio":
         portfolio_mode()
     
-    # Mode Tests Unitaires
-    elif mode == "Tests Unitaires":
-        st.title("🧪 Tests Unitaires")
+    elif mode == "Unit Tests":
+        st.title("🧪 Unit Tests")
         
         tests = {
             "DataFetcher": test_data_fetcher,
             "TechnicalAnalyzer": lambda: test_technical_analyzer(st.session_state.df if 'df' in st.session_state else None),
             "Visualizer": lambda: test_visualizer(st.session_state.df if 'df' in st.session_state else None),
-            "Comparaison Multi-Actifs": test_multi_asset_comparison,
+            "Multi-Asset Comparison": test_multi_asset_comparison,
             "NewsFetcher": test_news_fetcher,
             "RedditSentiment": test_reddit_sentiment,
             "PortfolioManager": test_portfolio_manager,
-            "Système d'Alertes": test_alert_system
+            "Alert System": test_alert_system
         }
         
-        selected_test = st.selectbox("Sélectionnez un test à exécuter", list(tests.keys()), key="test_selector")
+        selected_test = st.selectbox("Select a test to run", list(tests.keys()), key="test_selector")
         
-        if st.button("Lancer le test", key="run_test"):
-            with st.spinner("Exécution en cours..."):
+        if st.button("Run test", key="run_test"):
+            with st.spinner("Running..."):
                 try:
                     success = tests[selected_test]()
                     if success:
-                        st.success("✅ Test réussi!")
+                        st.success("✅ Test successful!")
                     else:
-                        st.error("❌ Test échoué")
+                        st.error("❌ Test failed")
                 except Exception as e:
-                    st.error(f"❌ Erreur lors du test: {str(e)}")
+                    st.error(f"❌ Test error: {str(e)}")
             
-            st.text_area("Logs", value="Voir la console pour les détails", height=100, key="logs_area")
+            st.text_area("Logs", value="See console for details", height=100, key="logs_area")
 main()
