@@ -431,10 +431,31 @@ def test_alert_system():
     except Exception as e:
         print(f"❌ Erreur: {str(e)}")
         return False
+# Ajout du cache pour les données initiales
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_initial_data():
+    fetcher = DataFetcher("AAPL")
+    df = fetcher.fetch_data(period="6mo")
+    analyzer = TechnicalAnalyzer(df)
+    analyzer.calcul_50_200_jours()
+    analyzer.add_rsi()
+    analyzer.calculate_volatility()
+    return analyzer.df
+
+# Ajout du cache pour la comparaison multi-actifs
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_comparison_data(tickers, start_date, end_date):
+    compare_data = {}
+    for t in tickers:
+        df = DataFetcher(t).fetch_data(start=start_date, end=end_date)
+        if not df.empty:
+            analyzer = TechnicalAnalyzer(df)
+            analyzer.calcul_50_200_jours()
+            compare_data[t] = analyzer.df
+    return compare_data
 def main():
     st.set_page_config(page_title="Dashboard Boursier", layout="wide")
     
-    # Menu de sélection des modes - UNIQUEMENT UNE DÉCLARATION
     mode = st.sidebar.selectbox(
         "Choisir un mode",
         [
@@ -443,18 +464,23 @@ def main():
             "Portefeuille Virtuel",
             "Tests Unitaires"
         ],
-        key="mode_selector_unique"  # Clé unique
+        key="mode_selector_unique"
     )
     
     # Mode Dashboard Action Unique
     if mode == "Dashboard Action Unique":
         if 'df' not in st.session_state:
             fetcher = DataFetcher("AAPL")
-            st.session_state.df = fetcher.fetch_data(period="6mo")
-            analyzer = TechnicalAnalyzer(st.session_state.df)
+            df = fetcher.fetch_data(period="6mo")
+            analyzer = TechnicalAnalyzer(df)
             analyzer.calcul_50_200_jours()
             analyzer.add_rsi()
             analyzer.calculate_volatility()
+            # Générer les colonnes nécessaires pour rendements
+            analyzer.Add_column_Signal()
+            analyzer.Add_column_Performance()
+            analyzer.Add_columns_rendements()
+            st.session_state.df = analyzer.df
         
         dashboard = Dashboard(st.session_state.df)
         dashboard.display()
@@ -463,7 +489,6 @@ def main():
     elif mode == "Comparaison Multi-Actifs":
         st.title("Comparaison Multi-Actifs")
         
-        # Paramètres de comparaison
         col1, col2 = st.columns(2)
         with col1:
             tickers = st.multiselect(
@@ -486,6 +511,11 @@ def main():
                     if not df.empty:
                         analyzer = TechnicalAnalyzer(df)
                         analyzer.calcul_50_200_jours()
+                        analyzer.add_rsi()
+                        analyzer.calculate_volatility()
+                        analyzer.Add_column_Signal()
+                        analyzer.Add_column_Performance()
+                        analyzer.Add_columns_rendements()
                         compare_data[t] = analyzer.df
                     else:
                         st.warning(f"Aucune donnée disponible pour {t}")
@@ -496,7 +526,6 @@ def main():
             if compare_data:
                 st.session_state.compare_data = compare_data
         
-        # Affichage du graphique comparatif
         if "compare_data" in st.session_state and st.session_state.compare_data:
             viz = Visualizer(next(iter(st.session_state.compare_data.values())), rows=1, columns=1)
             viz.draw_multiple_tickers(st.session_state.compare_data)

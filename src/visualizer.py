@@ -1,5 +1,6 @@
 import plotly.graph_objects as go
 import pandas as pd
+import streamlit as st
 from plotly.subplots import make_subplots
 from src.technical_analyzer import TechnicalAnalyzer
 
@@ -204,19 +205,39 @@ class Visualizer:
                 overlay=overlay
             )
         return self
-    def show(self, log_scale=False):
-        """Displays the final chart."""
+    def show(self, log_scale=False, title=None):
+        """Affiche le graphique final avec un style amélioré"""
         self.fig.update_layout(
+            template="plotly_white",
             hovermode='x unified',
             xaxis_rangeslider_visible=False,
             height=600,
-            margin=dict(l=50, r=50, b=50, t=50)
+            margin=dict(l=50, r=50, b=50, t=50 if title else 30),
+            title=dict(
+                text=title,
+                x=0.5,
+                xanchor='center',
+                font=dict(size=20)
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            plot_bgcolor='rgba(240,240,240,0.8)',
+            paper_bgcolor='rgba(240,240,240,0.1)'
         )
-        
+    
         if log_scale:
             self.fig.update_yaxes(type="log")
-            
-        self.fig.show()
+        
+        # Ajout de lignes de grille
+        self.fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='LightGrey')
+        self.fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor='LightGrey')
+    
+        st.plotly_chart(self.fig, use_container_width=True)
         return self
     def test_visualizer(cls, df=None):
         """Génère un rapport de test visuel

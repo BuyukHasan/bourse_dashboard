@@ -13,3 +13,4 @@ class RedditSentiment:
             'total': 50,
             'sample': "Simulation sans accès Reddit"
         }
+    
