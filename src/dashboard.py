@@ -8,11 +8,28 @@ from src.reddit_analyzer import RedditSentiment
 
 class Dashboard:
     def __init__(self, data_frame):
-        self.tickers = ["AAPL", "TSLA", "MSFT", "AMZN", "GOOGL"]
+        # Définir les catégories d'actifs étendues
+        self.asset_categories = {
+            "Actions": ["AAPL", "TSLA", "MSFT", "AMZN", "GOOGL", "META", "BRK-B", "JPM", "JNJ", "V"],
+            "ETF": ["SPY", "QQQ", "VTI", "IVV", "VOO", "ARKK", "GLD", "TLT"],
+            "Obligations": ["TLT", "IEF", "LQD", "HYG", "BND"]
+        }
+        
+        # Trouver le ticker initial à partir des données
+        self.ticker = self._find_initial_ticker(data_frame)
         self.default_start_date = datetime.now().replace(year=datetime.now().year-1)
         self.df = data_frame
         if 'theme_colors' not in st.session_state:
             st.session_state.theme_colors = self._get_theme_colors("Neon Cyberpunk")
+    
+    def _find_initial_ticker(self, df):
+        """Trouver le ticker initial à partir des données"""
+        # Si le DataFrame contient une colonne 'Ticker', utiliser la première valeur
+        if 'Ticker' in df.columns:
+            return df['Ticker'].iloc[0]
+        # Sinon, utiliser le premier ticker dans les catégories
+        return self.asset_categories["Actions"][0]
+        
     def _get_theme_colors(self, theme_name):
         """Return color palette for selected theme"""
         themes = {
@@ -60,33 +77,58 @@ class Dashboard:
         return themes.get(theme_name, themes["Neon Cyberpunk"]) 
         
     def _create_sidebar_controls(self):
-        self.selected_ticker = st.sidebar.selectbox(
-            "Select a stock:", 
-            self.tickers,
-            key="unique_ticker_select"
+        # Trouver la catégorie du ticker actuel
+        current_category = None
+        for category, tickers in self.asset_categories.items():
+            if self.ticker in tickers:
+                current_category = category
+                break
+        
+        if current_category is None:
+            current_category = "Actions"
+        
+        # Widgets de sélection
+        selected_category = st.sidebar.selectbox(
+            "Catégorie", 
+            list(self.asset_categories.keys()),
+            index=list(self.asset_categories.keys()).index(current_category)
         )
+        
+        ticker_options = self.asset_categories[selected_category]
+    
+        # Vérifie si le ticker actuel est dans les options
+        if self.ticker in ticker_options:
+            ticker_index = ticker_options.index(self.ticker)
+        else:
+            ticker_index = 0  # Prend le premier ticker par défaut
+        
+        self.selected_ticker = st.sidebar.selectbox(
+            "Ticker", 
+            ticker_options,
+            index=ticker_index  # Utilise l'index calculé
+        )
+        
         self.start_date = st.sidebar.date_input(
-            "Start date:", 
+            "Date de début:", 
             value=self.default_start_date,
             key="unique_start_date"
         )
         self.end_date = st.sidebar.date_input(
-            "End date:", 
+            "Date de fin:", 
             value=datetime.now(),
             key="unique_end_date"
         )
         
-        if st.sidebar.button("Apply changes"):
+        if st.sidebar.button("Appliquer les changements"):
             self._reload_data()
         
-        # Correction de la clé ici
         st.sidebar.markdown("---")
-        st.sidebar.subheader("🎨 Theme Customizer")
+        st.sidebar.subheader("🎨 Personnalisation du thème")
         new_theme = st.sidebar.selectbox(
-            "Color Theme",
+            "Thème visuel",
             ["Neon Cyberpunk", "Lava Explosion", "Electric Ocean", "Acid Jungle", "Galactic Purple"],
             index=0,
-            key="dashboard_theme_selector"  # Clé modifiée
+            key="dashboard_theme_selector"
         )
     
         if new_theme != st.session_state.get('current_theme'):
@@ -96,7 +138,7 @@ class Dashboard:
     
     def _reload_data(self):
         """Load data with progress indicator"""
-        with st.spinner(f"Loading data for {self.selected_ticker}..."):
+        with st.spinner(f"Chargement des données pour {self.selected_ticker}..."):
             progress_bar = st.progress(0)
         
             try:
@@ -122,12 +164,12 @@ class Dashboard:
                     st.session_state.df = analyzer.df
                     progress_bar.progress(100)
                 
-                    st.toast("Data updated successfully!", icon="✅")
+                    st.toast("Données mises à jour avec succès !", icon="✅")
                     st.rerun()
                 else:
-                    st.sidebar.error("No data available for these parameters")
+                    st.sidebar.error("Aucune donnée disponible pour ces paramètres")
             except Exception as e:
-                st.sidebar.error(f"Error loading data: {str(e)}")
+                st.sidebar.error(f"Erreur de chargement des données: {str(e)}")
             finally:
                 progress_bar.empty()
     
@@ -137,79 +179,79 @@ class Dashboard:
     
         price_change = self.df['Close'].pct_change().iloc[-1] * 100
         cols[0].metric(
-            label="💰 Current Price",
+            label="💰 Prix actuel",
             value=f"{self.df['Close'].iloc[-1]:.2f} $",
             delta=f"{price_change:.2f}%",
             delta_color="normal",
-            help="Last closing price with daily variation"
+            help="Dernier prix de clôture avec variation journalière"
         )
     
         volatility = self.df['Volatility'].iloc[-1] * 100
         volatility_icon = "📈" if volatility < 5 else "📉" if volatility > 15 else "📊"
         cols[1].metric(
-            label=f"{volatility_icon} Volatility (30d)",
+            label=f"{volatility_icon} Volatilité (30j)",
             value=f"{volatility:.1f}%",
-            help="Annualized 30-day volatility"
+            help="Volatilité annualisée sur 30 jours"
         )
     
         volume = self.df['Volume'].iloc[-1]
         cols[2].metric(
-            label="📦 Daily Volume",
+            label="📦 Volume journalier",
             value=f"{volume/1e6:.1f}M",
-            help="Traded volume in millions"
+            help="Volume échangé en millions"
         )
     
         if 'rsi' in self.df.columns:
             rsi_value = self.df['rsi'].iloc[-1]
-            rsi_status = "Buy" if rsi_value < 30 else "Sell" if rsi_value > 70 else "Neutral"
+            rsi_status = "Achat" if rsi_value < 30 else "Vente" if rsi_value > 70 else "Neutre"
             cols[3].metric(
-                label=f"📊 RSI (14d) - {rsi_status}",
+                label=f"📊 RSI (14j) - {rsi_status}",
                 value=f"{rsi_value:.1f}",
-                help="Relative Strength Index - <30: Oversold, >70: Overbought"
+                help="Indice de force relative - <30: Survente, >70: Surachat"
             )
 
     def _create_analysis_tabs(self):
         """Create analysis tabs with enriched content"""
         tab1, tab2, tab3, tab4 = st.tabs([
-            "📈 Main Chart", 
-            "📊 Technical Analysis", 
-            "🔍 Raw Data",
-            "📰 News & Sentiment"
+            "📈 Graphique principal", 
+            "📊 Analyse technique", 
+            "🔍 Données brutes",
+            "📰 Actualités & Sentiment"
         ])
 
         with tab1:
-            st.markdown("#### Price evolution with moving averages")
+            st.markdown("#### Évolution des prix avec moyennes mobiles")
             fig = Visualizer(self.df, rows=1, columns=1)
             fig.draw_candlestick().MA_draw(overlay=True)
-            fig.show(title=f"Analysis of {self.selected_ticker}")
+            fig.show(title=f"Analyse de {self.selected_ticker}")
         
-            st.markdown("##### Recent trends")
+            st.markdown("##### Tendances récentes")
             col1, col2 = st.columns(2)
             with col1:
                 last_5_days = self.df['Close'].pct_change(5).iloc[-1] * 100
-                st.metric("Last 5 days", f"{last_5_days:.2f}%")
+                st.metric("5 derniers jours", f"{last_5_days:.2f}%")
             with col2:
                 last_month = self.df['Close'].pct_change(20).iloc[-1] * 100
-                st.metric("1 month", f"{last_month:.2f}%")
+                st.metric("1 mois", f"{last_month:.2f}%")
 
         with tab2:
-            st.markdown("#### Complete technical analysis")
+            st.markdown("#### Analyse technique complète")
             cols = st.columns(2)
         
             with cols[0]:
-                st.markdown("##### Key indicators")
+                st.markdown("##### Indicateurs clés")
                 fig1 = Visualizer(self.df, rows=2, columns=1, row_heights=[0.7, 0.3])
                 fig1.draw_candlestick().Rsi_draw(show_zones=True)
                 fig1.show()
             
             with cols[1]:
-                st.markdown("##### Volume and volatility")
+                st.markdown("##### Volume et volatilité")
                 fig2 = Visualizer(self.df, rows=2, columns=1, row_heights=[0.5, 0.5])
                 fig2.draw_volume().draw_cumulative_returns()
                 fig2.show()
 
         with tab3:
-            st.markdown("#### Historical data")
+            st.markdown("#### Données historiques")
             st.data_editor(
                 self.df.sort_index(ascending=False),
                 column_config={
@@ -231,7 +273,7 @@ class Dashboard:
             
     def _display_news_analysis(self):
         """Display news and sentiment analysis"""
-        st.subheader("📰 News and Sentiment Analysis")
+        st.subheader("📰 Actualités et analyse de sentiment")
     
         news = NewsFetcher().get_company_news(self.selected_ticker)
         reddit_data = RedditSentiment().analyze_ticker(self.selected_ticker)
@@ -243,17 +285,17 @@ class Dashboard:
     
         global_score = (avg_news_score + reddit_score) / 2
         
-        st.markdown("### Investment Recommendation")
+        st.markdown("### Recommandation d'investissement")
         if global_score > 0.3:
-            st.success("✅ **Favorable to buy** - Very positive sentiment")
+            st.success("✅ **Favorable à l'achat** - Sentiment très positif")
         elif global_score > -0.2:
-            st.info("🟢 **Moderate opportunity** - Generally neutral sentiment")
+            st.info("🟢 **Opportunité modérée** - Sentiment généralement neutre")
         else:
-            st.warning("⚠️ **Caution** - Dominant negative sentiment")
+            st.warning("⚠️ **Prudence** - Sentiment négatif dominant")
         
-        st.metric("Confidence Score", f"{global_score:.2f}/1.0")
+        st.metric("Score de confiance", f"{global_score:.2f}/1.0")
         
-        st.markdown("### Latest News")
+        st.markdown("### Dernières actualités")
         for item in news:
             sentiment_color = {
                 "positive": "green",
@@ -269,15 +311,15 @@ class Dashboard:
             </div>
             """, unsafe_allow_html=True)
         
-        st.markdown("### Social Media Sentiment")
+        st.markdown("### Sentiment des réseaux sociaux")
         st.progress((reddit_data['positive'] / reddit_data['total']))
-        st.caption(f"Positive: {reddit_data['positive']} | Neutral: {reddit_data['neutral']} | Negative: {reddit_data['negative']}")
+        st.caption(f"Positif: {reddit_data['positive']} | Neutre: {reddit_data['neutral']} | Négatif: {reddit_data['negative']}")
         
     def _add_data_download(self):
         csv_data = self.df.to_csv(index=False).encode('utf-8')
         today = datetime.now().strftime("%Y-%m-%d")
         st.download_button(
-            label="📥 Download data",
+            label="📥 Télécharger les données",
             data=csv_data,
             file_name=f'stock_data_{today}.csv',
             mime='text/csv',
@@ -299,7 +341,7 @@ class Dashboard:
                 
     def _create_alert_system(self):
         """Visually improved alert system"""
-        with st.sidebar.expander("🔔 Alert System", expanded=True):
+        with st.sidebar.expander("🔔 Système d'alertes", expanded=True):
             if 'alerts' not in st.session_state:
                 st.session_state.alerts = []
         
@@ -307,32 +349,32 @@ class Dashboard:
                 cols = st.columns(2)
                 with cols[0]:
                     indicator = st.selectbox(
-                        "Indicator",
-                        ["RSI", "Closing Price", "Volatility", "MA Crossover"],
+                        "Indicateur",
+                        ["RSI", "Prix de clôture", "Volatilité", "Croisement MA"],
                         key="alert_indicator"
                     )
                     condition = st.selectbox(
                         "Condition",
-                        ["Above", "Below", "Crosses above", "Crosses below"],
+                        ["Au-dessus", "En dessous", "Croise au-dessus", "Croise en dessous"],
                         key="alert_condition"
                     )
             
                 with cols[1]:
                     threshold = st.number_input(
-                        "Threshold",
+                        "Seuil",
                         min_value=0.0,
-                        max_value=1000.0 if indicator == "Closing Price" else 100.0,
+                        max_value=1000.0 if indicator == "Prix de clôture" else 100.0,
                         value=30.0 if indicator == "RSI" else 50.0,
                         step=0.1,
                         key="alert_threshold"
                     )
                     color = st.color_picker(
-                        "Alert color",
+                        "Couleur d'alerte",
                         value="#FF4B4B",
                         key="alert_color"
                     )
             
-                if st.form_submit_button("➕ Add alert", use_container_width=True):
+                if st.form_submit_button("➕ Ajouter une alerte", use_container_width=True):
                     new_alert = {
                         'indicator': indicator,
                         'condition': condition,
@@ -342,11 +384,11 @@ class Dashboard:
                         'triggered': False
                     }
                     st.session_state.alerts.append(new_alert)
-                    st.success("Alert saved!")
+                    st.success("Alerte enregistrée !")
         
             if st.session_state.alerts:
                 st.markdown("---")
-                st.markdown("**My Active Alerts**")
+                st.markdown("**Mes alertes actives**")
             
                 for i, alert in enumerate(st.session_state.alerts[:5]):
                     with st.container(border=True):
@@ -395,26 +437,26 @@ class Dashboard:
             
                 if alert['indicator'] == "RSI":
                     current_value = self.df['rsi'].iloc[-1]
-                elif alert['indicator'] == "Closing Price":
+                elif alert['indicator'] == "Prix de clôture":
                     current_value = self.df['Close'].iloc[-1]
-                elif alert['indicator'] == "Volatility":
+                elif alert['indicator'] == "Volatilité":
                     current_value = self.df['Volatility'].iloc[-1] * 100
             
                 if current_value is not None:
-                    if alert['condition'] == "Above" and current_value > alert['threshold']:
+                    if alert['condition'] == "Au-dessus" and current_value > alert['threshold']:
                         message = f"🚨 {alert['indicator']} ({current_value:.2f}) > {alert['threshold']}"
-                    elif alert['condition'] == "Below" and current_value < alert['threshold']:
+                    elif alert['condition'] == "En dessous" and current_value < alert['threshold']:
                         message = f"🚨 {alert['indicator']} ({current_value:.2f}) < {alert['threshold']}"
                 
-                    elif alert['indicator'] == "MA Crossover":
-                        if alert['condition'] == "Crosses above" and \
+                    elif alert['indicator'] == "Croisement MA":
+                        if alert['condition'] == "Croise au-dessus" and \
                             self.df['MA_50'].iloc[-1] > self.df['MA_200'].iloc[-1] and \
                             self.df['MA_50'].iloc[-2] <= self.df['MA_200'].iloc[-2]:
-                            message = "🚨 Bullish crossover (MA50 > MA200)"
-                        elif alert['condition'] == "Crosses below" and \
+                            message = "🚨 Croisement haussier (MA50 > MA200)"
+                        elif alert['condition'] == "Croise en dessous" and \
                             self.df['MA_50'].iloc[-1] < self.df['MA_200'].iloc[-1] and \
                             self.df['MA_50'].iloc[-2] >= self.df['MA_200'].iloc[-2]:
-                            message = "🚨 Bearish crossover (MA50 < MA200)"
+                            message = "🚨 Croisement baissier (MA50 < MA200)"
             
                     if message and not alert['triggered']:
                         st.toast(message, icon="🔔")
@@ -423,7 +465,7 @@ class Dashboard:
                         st.session_state.alerts[i]['triggered'] = False
                     
             except KeyError as e:
-                st.error(f"Error: Column {str(e)} missing for alert")
+                st.error(f"Erreur: Colonne {str(e)} manquante pour l'alerte")
                 
     @classmethod
     def test_dashboard(cls):

@@ -12,20 +12,24 @@ class DataFetcher:
             print("⚠️ Unknown or misspelled ticker symbol")
 
     def fetch_data(self, period=None, start=None, end=None, interval="1d"):
-        """
-        Fetch historical market data
-        Args:
-            period (str): e.g., '6mo', '1y' (overrides start/end)
-            start (str): Start date 'YYYY-MM-DD'
-            end (str): End date 'YYYY-MM-DD'
-            interval (str): Data interval ('1d', '1h', '1m')
-        Returns:
-            pd.DataFrame: Cleaned historical data
-        """
-        if period:
-            data = yf.Ticker(self.ticker).history(period=period, interval=interval)
+        """Gestion spéciale des tickers d'obligations"""
+        if self.ticker in ["TLT", "IEF", "LQD", "HYG", "BND"]:
+            # Conversion des tickers d'ETF obligataires
+            bond_ticker = self.ticker + ".BO" if not self.ticker.endswith(".BO") else self.ticker
+            data = yf.Ticker(bond_ticker).history(
+                period=period,
+                interval=interval,
+                start=start,
+                end=end
+            )
         else:
-            data = yf.Ticker(self.ticker).history(start=start, end=end, interval=interval)
+            # Traitement standard
+            data = yf.Ticker(self.ticker).history(
+                period=period,
+                interval=interval,
+                start=start,
+                end=end
+            )
         
         return self._clean_data(data)
 
