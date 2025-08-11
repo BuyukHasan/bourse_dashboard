@@ -206,37 +206,164 @@ class Visualizer:
         return self
 
     def show(self, log_scale=False, title=None):
-        """Display final chart with improved style"""
-        self.fig.update_layout(
-            template="plotly_white",
-            hovermode='x unified',
-            xaxis_rangeslider_visible=False,
-            height=600,
-            margin=dict(l=50, r=50, b=50, t=50 if title else 30),
-            title=dict(
-                text=title,
-                x=0.5,
-                xanchor='center',
-                font=dict(size=20)
-            ),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            plot_bgcolor='rgba(240,240,240,0.8)',
-            paper_bgcolor='rgba(240,240,240,0.1)'
+        """Display final chart with theme style"""
+        theme = st.session_state.get('theme', 'Neon Cyberpunk')
+        colors = st.session_state.get('theme_colors', {
+            'primary': '#0f0c29',
+            'secondary': '#ff00ff',
+            'background': '#100e1d',
+            'accent1': '#00ffff',
+            'accent2': '#ff00ff',
+            'text': '#e0e0ff'
+        })
+
+        # Apply theme-specific colors with enhanced contrast
+        if theme == "Neon Cyberpunk":
+            self.fig.update_traces(
+            selector=dict(type='candlestick'),
+            increasing_line_color='#00ffff', 
+            decreasing_line_color='#ff00ff',
+            increasing_fillcolor='rgba(0, 255, 255, 0.7)',
+            decreasing_fillcolor='rgba(255, 0, 255, 0.7)'
+            )
+            self.fig.update_traces(
+                selector=dict(type='bar'),
+                marker_color='#ff00ff',
+                opacity=0.8
+            )
+            self.fig.update_traces(
+            selector=dict(type='scatter'),
+            line_color='#00ffff',
+            line_width=2
+            )
+
+        elif theme == "Lava Explosion":
+            self.fig.update_traces(
+            selector=dict(type='candlestick'),
+            increasing_line_color='#ff7b00', 
+            decreasing_line_color='#ff3c00',
+            increasing_fillcolor='rgba(255, 123, 0, 0.7)',
+            decreasing_fillcolor='rgba(255, 60, 0, 0.7)'
+            )
+            self.fig.update_traces(
+            selector=dict(type='bar'),
+            marker_color='#ff3c00',
+            opacity=0.8
+            )
+            self.fig.update_traces(
+            selector=dict(type='scatter'),
+            line_color='#ff7b00',
+            line_width=2
+            )
+
+        elif theme == "Electric Ocean":
+            self.fig.update_traces(
+            selector=dict(type='candlestick'),
+            increasing_line_color='#0074D9', 
+            decreasing_line_color='#7FDBFF',
+            increasing_fillcolor='rgba(0, 116, 217, 0.7)',
+            decreasing_fillcolor='rgba(127, 219, 255, 0.7)'
+            )
+            self.fig.update_traces(
+            selector=dict(type='bar'),
+            marker_color='#7FDBFF',
+            opacity=0.8
+            )
+            self.fig.update_traces(
+            selector=dict(type='scatter'),
+            line_color='#0074D9',
+            line_width=2
+            )
+
+        elif theme == "Acid Jungle":
+            self.fig.update_traces(
+            selector=dict(type='candlestick'),
+            increasing_line_color='#00cc00',
+            decreasing_line_color='#009900',
+            increasing_fillcolor='rgba(0, 204, 0, 0.7)',
+            decreasing_fillcolor='rgba(0, 153, 0, 0.7)'
+            )
+            self.fig.update_traces(
+            selector=dict(type='bar'),
+            marker_color='#00cc00',
+            opacity=0.8
+            )
+            self.fig.update_traces(
+            selector=dict(type='scatter'),
+            line_color='#00cc00',
+            line_width=2
+            )
+
+        elif theme == "Galactic Purple":
+            self.fig.update_traces(
+            selector=dict(type='candlestick'),
+            increasing_line_color='#9900ff', 
+            decreasing_line_color='#ff00cc',
+            increasing_fillcolor='rgba(153, 0, 255, 0.7)',
+            decreasing_fillcolor='rgba(255, 0, 204, 0.7)'
+            )
+            self.fig.update_traces(
+            selector=dict(type='bar'),
+            marker_color='#ff00cc',
+            opacity=0.8
+            )
+            self.fig.update_traces(
+            selector=dict(type='scatter'),
+            line_color='#9900ff',
+            line_width=2
+            )
+
+        # Update layout with theme-appropriate settings
+        layout_updates = {
+        'template': "plotly_dark",
+        'hovermode': 'x unified',
+        'xaxis_rangeslider_visible': False,
+        'height': 600,
+        'margin': dict(l=50, r=50, b=50, t=50 if title else 30),
+        'title': dict(
+            text=title,
+            x=0.5,
+            xanchor='center',
+            font=dict(size=20, color=colors['text'])
+        ),
+        'legend': dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(color=colors['text'])
+        ),
+        'plot_bgcolor': colors['primary'],
+        'paper_bgcolor': colors['background'],
+        'font': dict(color=colors['text']),
+        'xaxis': dict(
+            gridcolor=colors['accent1'],  # Simplified grid color
+            linecolor=colors['secondary'],
+            tickfont=dict(color=colors['text'])
+        ),
+        'yaxis': dict(
+            gridcolor=colors['accent1'],  # Simplified grid color
+            linecolor=colors['secondary'],
+            tickfont=dict(color=colors['text'])
         )
-    
+        }
+
+        self.fig.update_layout(**layout_updates)
+
+        # Additional axes for subplots (simplified)
+        for axis in self.fig['layout']:
+            if axis.startswith('xaxis') or axis.startswith('yaxis'):
+                self.fig['layout'][axis].update(
+                gridcolor=colors['accent1'],
+                linecolor=colors['secondary'],
+                tickfont=dict(color=colors['text'])
+                )
+
         if log_scale:
             self.fig.update_yaxes(type="log")
-        
-        self.fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='LightGrey')
-        self.fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor='LightGrey')
-    
-        st.plotly_chart(self.fig, use_container_width=True)
+
+        st.plotly_chart(self.fig, use_container_width=True, theme=None)  # Set theme=None to avoid conflict
         return self
     
     @classmethod

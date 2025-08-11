@@ -11,56 +11,53 @@ class Dashboard:
         self.tickers = ["AAPL", "TSLA", "MSFT", "AMZN", "GOOGL"]
         self.default_start_date = datetime.now().replace(year=datetime.now().year-1)
         self.df = data_frame
-        
-    def _set_global_style(self):
-        """Configure global dashboard style"""
-        primary_color = "#2c3e50"
-        secondary_color = "#3498db"
-        background_color = "#f8f9fa"
-    
-        st.set_page_config(
-            page_title="Stock Market Dashboard",
-            layout="wide",
-            page_icon="📊"
-        )
-    
-        st.markdown(f"""
-        <style>
-            .css-18e3th9 {{
-                background-color: {background_color};
-            }}
-            .css-1d391kg {{
-                background-color: {primary_color};
-                color: white;
-            }}
-            .stMetric {{
-                border-left: 0.25rem solid {secondary_color};
-                padding: 1rem;
-                border-radius: 0.5rem;
-                background-color: white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }}
-            .stTabs [data-baseweb="tab-list"] {{
-                gap: 0.5rem;
-            }}
-            .stTabs [data-baseweb="tab"] {{
-                padding: 0.5rem 1rem;
-                border-radius: 0.5rem 0.5rem 0 0;
-            }}
-            .stTabs [aria-selected="true"] {{
-                background-color: {secondary_color};
-                color: white;
-            }}
-            .css-1vq4p4l {{
-                padding: 2rem 1rem;
-                background-color: {primary_color};
-                color: white;
-            }}
-            .sidebar .sidebar-content {{
-                background-color: {primary_color};
-            }}
-        </style>
-        """, unsafe_allow_html=True)
+        if 'theme_colors' not in st.session_state:
+            st.session_state.theme_colors = self._get_theme_colors("Neon Cyberpunk")
+    def _get_theme_colors(self, theme_name):
+        """Return color palette for selected theme"""
+        themes = {
+            "Neon Cyberpunk": {
+                "primary": "#0f0c29",
+                "secondary": "#ff00ff",
+                "background": "#100e1d",
+                "accent1": "#00ffff",
+                "accent2": "#ff00ff",
+                "text": "#e0e0ff"
+            },
+            "Lava Explosion": {
+                "primary": "#2a0000",
+                "secondary": "#ff3c00",
+                "background": "#1a0000",
+                "accent1": "#ff7b00",
+                "accent2": "#ff0000",
+                "text": "#ffd9d9"
+            },
+            "Electric Ocean": {
+                "primary": "#001f3f",
+                "secondary": "#00ffff",
+                "background": "#001a33",
+                "accent1": "#0074D9",
+                "accent2": "#7FDBFF",
+                "text": "#aaffff"
+            },
+            "Acid Jungle": {
+                "primary": "#001100",  # Plus foncé
+                "secondary": "#00cc00",  # Vert vif mais moins agressif
+                "background": "#000800",  # Fond plus sombre
+                "accent1": "#00aa00",
+                "accent2": "#008800",
+                "text": "#e0ffe0"  # Texte vert très clair
+            },
+            "Galactic Purple": {
+                "primary": "#0d000d",
+                "secondary": "#cc00ff",
+                "background": "#080008",  # Plus sombre
+                "accent1": "#9900ff",
+                "accent2": "#ff00cc",
+                "text": "#f0e0ff"  # Texte violet clair
+            }
+        }
+        return themes.get(theme_name, themes["Neon Cyberpunk"]) 
         
     def _create_sidebar_controls(self):
         self.selected_ticker = st.sidebar.selectbox(
@@ -81,6 +78,21 @@ class Dashboard:
         
         if st.sidebar.button("Apply changes"):
             self._reload_data()
+        
+        # Correction de la clé ici
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🎨 Theme Customizer")
+        new_theme = st.sidebar.selectbox(
+            "Color Theme",
+            ["Neon Cyberpunk", "Lava Explosion", "Electric Ocean", "Acid Jungle", "Galactic Purple"],
+            index=0,
+            key="dashboard_theme_selector"  # Clé modifiée
+        )
+    
+        if new_theme != st.session_state.get('current_theme'):
+            st.session_state.theme = new_theme
+            st.session_state.current_theme = new_theme
+            st.rerun()
     
     def _reload_data(self):
         """Load data with progress indicator"""
@@ -274,8 +286,6 @@ class Dashboard:
 
     def display(self):
         """Version with alert system"""
-        self._set_global_style()
-    
         container = st.container()
         with container:
             self._create_sidebar_controls()
