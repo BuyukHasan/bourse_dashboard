@@ -740,11 +740,11 @@ def main():
     }
         
         # Créer une liste unique de tous les tickers
-        all_tickers = list(set(
-            asset_categories["Actions"] + 
-            asset_categories["ETF"] + 
-            asset_categories["Obligations"]
-        ))
+        all_tickers = []
+        for category in asset_categories:
+            all_tickers.extend(asset_categories[category])
+            
+        all_tickers = list(set(all_tickers))
         all_tickers.sort()
         
         col1, col2 = st.columns(2)
