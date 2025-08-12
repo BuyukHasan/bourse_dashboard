@@ -12,9 +12,10 @@ class DataFetcher:
             print("⚠️ Unknown or misspelled ticker symbol")
 
     def fetch_data(self, period=None, start=None, end=None, interval="1d"):
-        """Gestion spéciale des tickers d'obligations"""
-        if self.ticker in ["TLT", "IEF", "LQD", "HYG", "BND"]:
-            # Conversion des tickers d'ETF obligataires
+        # Traitement spécial pour les ETF obligataires
+        bond_etfs = ["TLT", "IEF", "LQD", "HYG", "BND", "GOVT", "VGIT", "VGLT"]
+        
+        if self.ticker in bond_etfs:
             bond_ticker = self.ticker + ".BO" if not self.ticker.endswith(".BO") else self.ticker
             data = yf.Ticker(bond_ticker).history(
                 period=period,
