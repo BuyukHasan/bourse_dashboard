@@ -2,6 +2,9 @@ import pandas as pd
 from src.data_fetcher import DataFetcher
 from src.technical_analyzer import TechnicalAnalyzer
 import numpy as np
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import streamlit as st
 
 class PortfolioManager:
     def __init__(self, tickers_weights):
@@ -15,18 +18,38 @@ class PortfolioManager:
         self.data = {}  # Stores DataFrames by ticker
         self.returns = None  # DataFrame of weighted returns
     
-    def fetch_portfolio_data(self, period="1y"):
+    def fetch_portfolio_data(self, period="1y", status_container=None):
         """
-        Fetch data for all portfolio tickers.
+        Fetch data for all portfolio tickers using threading with visual feedback.
+        """
+        def fetch_and_process(ticker):
+            try:
+                df = DataFetcher(ticker).fetch_data(period=period)
+                analyzer = TechnicalAnalyzer(df)
+                analyzer.add_performance_column()
+                return ticker, analyzer.df
+            except Exception as e:
+                if status_container:
+                    status_container.error(f"Erreur avec {ticker}: {str(e)}")
+                return ticker, None
+
+        if status_container:
+            status_container.write("⏳ Téléchargement des données des actifs...")
         
-        Args:
-            period (str): Historical period (ex: "6mo", "1y")
-        """
-        for ticker in self.weights.keys():
-            df = DataFetcher(ticker).fetch_data(period=period)
-            analyzer = TechnicalAnalyzer(df)
-            analyzer.add_performance_column()  # Add daily returns
-            self.data[ticker] = analyzer.df
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(fetch_and_process, t): t for t in self.weights.keys()}
+            
+            for i, future in enumerate(as_completed(futures)):
+                ticker = futures[future]
+                ticker, df = future.result()
+                
+                if df is not None:
+                    self.data[ticker] = df
+                    if status_container:
+                        status_container.success(f"✅ {ticker} chargé")
+                else:
+                    if status_container:
+                        status_container.warning(f"⚠️ Échec du chargement pour {ticker}")
     
     def calculate_weighted_returns(self):
         """

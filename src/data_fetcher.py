@@ -12,6 +12,11 @@ class DataFetcher:
             print("⚠️ Unknown or misspelled ticker symbol")
 
     def fetch_data(self, period=None, start=None, end=None, interval="1d"):
+        # Convertir les dates en string si ce sont des objets datetime
+        if isinstance(start, pd.Timestamp):
+            start = start.strftime("%Y-%m-%d")
+        if isinstance(end, pd.Timestamp):
+            end = end.strftime("%Y-%m-%d")
         # Traitement spécial pour les ETF obligataires
         bond_etfs = ["TLT", "IEF", "LQD", "HYG", "BND", "GOVT", "VGIT", "VGLT"]
         

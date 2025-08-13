@@ -11,8 +11,11 @@ import random
 import pandas as pd
 import time
 import plotly.graph_objects as go
+import streamlit as st
 from datetime import datetime
 import streamlit as st
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def set_global_theme(theme_name):
     """Définit le thème global et stocke les couleurs dans session_state"""
@@ -357,10 +360,15 @@ def portfolio_mode():
     tickers_weights = dict(zip(selected_tickers, weights))
     
     if st.button("Lancer la simulation"):
-        pm = PortfolioManager(tickers_weights)
-        pm.fetch_portfolio_data(period="6mo")
-        returns = pm.calculate_weighted_returns()
-        metrics = pm.get_performance_metrics()
+        with st.status("**Construction du portefeuille...**", expanded=True) as status:
+            pm = PortfolioManager(tickers_weights)
+            pm.fetch_portfolio_data(period="6mo", status_container=status)
+            
+            status.write("⏳ Calcul des performances...")
+            returns = pm.calculate_weighted_returns()
+            metrics = pm.get_performance_metrics()
+            
+            status.update(label="Simulation terminée !", state="complete")
         
         fig = Visualizer(returns, rows=1, columns=1)
         fig._add_trace(
@@ -500,10 +508,8 @@ def load_initial_data():
     analyzer = TechnicalAnalyzer(df)
     analyzer.compute_50_200_days()
     analyzer.add_rsi()
-    analyzer.calculate_volatility()
     return analyzer.df
 
-@st.cache_data(ttl=3600, show_spinner=False)
 def load_comparison_data(tickers, start_date, end_date):
     compare_data = {}
     for t in tickers:
@@ -513,6 +519,25 @@ def load_comparison_data(tickers, start_date, end_date):
             analyzer.compute_50_200_days()
             compare_data[t] = analyzer.df
     return compare_data
+
+@st.cache_data(ttl=3600, show_spinner=False, hash_funcs={pd.Timestamp: lambda _: None})
+def fetch_single_ticker_data(ticker, start_date, end_date):
+    """Fonction threadée pour récupérer les données d'un ticker"""
+    try:
+        fetcher = DataFetcher(ticker)
+        df = fetcher.fetch_data(start=start_date, end=end_date)
+        if not df.empty:
+            analyzer = TechnicalAnalyzer(df)
+            analyzer.compute_50_200_days()
+            analyzer.add_rsi()
+            analyzer.calculate_volatility()
+            analyzer.add_signal_column()
+            analyzer.add_performance_column()
+            analyzer.add_returns_columns()
+            return ticker, analyzer.df
+        return ticker, None
+    except Exception as e:
+        return ticker, str(e)
 
 def main():
     st.set_page_config(page_title="Tableau de bord financier", layout="wide")
@@ -712,7 +737,7 @@ def main():
         ],
         "Matières Premières": [
             "GLD", "SLV", "USO", "UNG", "DBA", "PDBC", "GSG", "IAU", "SLVO", "USL", 
-            "UCO", "SCO", "BOIL", "KOLD", "WEAT", "CORN", "SOYB", "CANE", "CPER", "PALL", 
+            "UCO", "SCO", "BOIL", "KOLD", "WEat", "CORN", "SOYB", "CANE", "CPER", "PALL", 
             "PPLT", "DBB", "DBC", "COMT", "FTGC", "BCD", "BCM", "JJG", "JJC", "LD"
         ],
         "Cryptomonnaies": [
@@ -761,28 +786,46 @@ def main():
         
         if st.button("Exécuter la comparaison", key="run_comparison"):
             compare_data = {}
-            progress_bar = st.progress(0)
             
-            for i, t in enumerate(tickers):
-                try:
-                    df = DataFetcher(t).fetch_data(start=start_date, end=end_date)
-                    if not df.empty:
-                        analyzer = TechnicalAnalyzer(df)
-                        analyzer.compute_50_200_days()
-                        analyzer.add_rsi()
-                        analyzer.calculate_volatility()
-                        analyzer.add_signal_column()
-                        analyzer.add_performance_column()
-                        analyzer.add_returns_columns()
-                        compare_data[t] = analyzer.df
-                    else:
-                        st.warning(f"Aucune donnée disponible pour {t}")
-                except Exception as e:
-                    st.error(f"Erreur avec {t}: {str(e)}")
-                progress_bar.progress((i+1) / len(tickers))
-            
-            if compare_data:
-                st.session_state.compare_data = compare_data
+            with st.status("**Chargement des données...**", expanded=True) as status:
+                st.write("Initialisation du téléchargement des données boursières")
+                progress_bar = st.progress(0)
+                status_container = st.container()
+                
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    futures = {}
+                    for t in tickers:
+                        future = executor.submit(
+                            fetch_single_ticker_data, 
+                            t, 
+                            start_date, 
+                            end_date
+                        )
+                        futures[future] = t
+                    
+                    results = []
+                    for i, future in enumerate(as_completed(futures)):
+                        t = futures[future]
+                        progress = (i + 1) / len(tickers)
+                        progress_bar.progress(progress)
+                        
+                        try:
+                            ticker, result = future.result()
+                            if isinstance(result, pd.DataFrame):
+                                compare_data[ticker] = result
+                                status_container.success(f"✅ {ticker} chargé avec succès")
+                            elif result is None:
+                                status_container.warning(f"⚠️ Aucune donnée disponible pour {ticker}")
+                            else:
+                                status_container.error(f"❌ Erreur avec {ticker}: {result}")
+                        except Exception as e:
+                            status_container.error(f"❌ Erreur critique avec {ticker}: {str(e)}")
+                
+                if compare_data:
+                    st.session_state.compare_data = compare_data
+                    status.update(label="Données chargées avec succès !", state="complete")
+                else:
+                    status.update(label="Échec du chargement des données", state="error")
         
         if "compare_data" in st.session_state and st.session_state.compare_data:
             viz = Visualizer(next(iter(st.session_state.compare_data.values())), rows=1, columns=1)

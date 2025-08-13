@@ -7,6 +7,9 @@ from src.news_fetcher import NewsFetcher
 from src.reddit_analyzer import RedditSentiment
 from src.geo_data import GeoDataFetcher
 import plotly.express as px
+import pandas as pd
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 class Dashboard:
     def __init__(self, data_frame):
@@ -222,43 +225,47 @@ class Dashboard:
             st.session_state.current_theme = new_theme
             st.rerun()
     
+    # Remplacer la méthode _reload_data
     def _reload_data(self):
-        """Load data with progress indicator"""
-        with st.spinner(f"Chargement des données pour {self.selected_ticker}..."):
+        """Load data synchronously"""
+        with st.status(f"**Chargement des données pour {self.selected_ticker}...**", expanded=True) as status:
+            st.write("Récupération des données depuis Yahoo Finance")
             progress_bar = st.progress(0)
-        
+            
             try:
+                # Convertir les dates au format string
+                start_str = self.start_date.strftime("%Y-%m-%d")
+                end_str = self.end_date.strftime("%Y-%m-%d")
+                
                 fetcher = DataFetcher(self.selected_ticker)
-                progress_bar.progress(20)
-            
-                new_df = fetcher.fetch_data(start=self.start_date, end=self.end_date)
-                progress_bar.progress(50)
-            
-                if not new_df.empty:
-                    analyzer = TechnicalAnalyzer(new_df)
-                    analyzer.compute_50_200_days()
-                    progress_bar.progress(70)
-                    analyzer.add_rsi()
-                    analyzer.calculate_volatility()
-                    # Generate required columns for returns
-                    analyzer.add_signal_column()
-                    analyzer.add_performance_column()
-                    analyzer.add_returns_columns()
-                    progress_bar.progress(90)
+                progress_bar.progress(30)
+                new_df = fetcher.fetch_data(start=start_str, end=end_str)
                 
-                    self.df = analyzer.df
-                    st.session_state.df = analyzer.df
-                    progress_bar.progress(100)
+                if new_df.empty:
+                    status.update(label="Aucune donnée disponible pour ces paramètres", state="error")
+                    st.error("Vérifiez le ticker et les dates sélectionnées")
+                    return
+                    
+                st.write("Traitement des données (calcul des indicateurs techniques)")
+                progress_bar.progress(60)
+                analyzer = TechnicalAnalyzer(new_df)
+                analyzer.compute_50_200_days()
+                analyzer.add_rsi()
+                analyzer.calculate_volatility()
+                analyzer.add_signal_column()
+                analyzer.add_performance_column()
+                analyzer.add_returns_columns()
+                progress_bar.progress(90)
                 
-                    st.toast("Données mises à jour avec succès !", icon="✅")
-                    st.rerun()
-                else:
-                    st.sidebar.error("Aucune donnée disponible pour ces paramètres")
+                self.df = analyzer.df
+                st.session_state.df = self.df
+                progress_bar.progress(100)
+                status.update(label="Données mises à jour avec succès !", state="complete")
+                st.rerun()
+                
             except Exception as e:
-                st.sidebar.error(f"Erreur de chargement des données: {str(e)}")
-            finally:
-                progress_bar.empty()
-    
+                status.update(label="Erreur lors du chargement", state="error")
+                st.error(f"Erreur : {str(e)}")
     def _display_kpis(self):
         """Display key indicators with improved style"""
         cols = st.columns(4)
@@ -482,6 +489,12 @@ class Dashboard:
         with container:
             self._create_sidebar_controls()
             self._create_alert_system()
+            
+            # Vérifier si les données sont chargées
+            if not hasattr(self, 'df') or self.df.empty:
+                st.warning("Chargement initial des données...")
+                self._reload_data()
+                return
     
             if hasattr(self, 'df'):
                 self._check_alerts()
