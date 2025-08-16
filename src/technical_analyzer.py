@@ -84,12 +84,18 @@ class TechnicalAnalyzer:
         self.df['returns'] = self.df['Signal'].shift(1) * self.df['Daily_Return']
 
     def calculate_volatility(self, window=30, annualized=True):
-        """Calcule la volatilité"""
         returns = self.df['Close'].pct_change()
-        # Calcul standard pour tous les actifs
+    
+        # Vérifier s'il y a suffisamment de données
+        if len(returns) < window:
+            # Utiliser une fenêtre plus petite si nécessaire
+            window = max(2, len(returns) // 2)
+        
         rolling_std = returns.rolling(window).std()
+        
         if annualized:
             rolling_std = rolling_std * np.sqrt(252)  # Annualisation
+        
         self.df['Volatility'] = rolling_std
 
     def bollinger_bands(self, window=30, num_std=2):

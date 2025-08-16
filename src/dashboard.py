@@ -227,6 +227,16 @@ class Dashboard:
     
     # Remplacer la méthode _reload_data
     def _reload_data(self):
+        """Load data with caching"""
+        # Créer une clé de cache unique
+        cache_key = f"{self.selected_ticker}_{self.start_date}_{self.end_date}"
+        
+        # Vérifier le cache
+        if 'data_cache' in st.session_state and cache_key in st.session_state.data_cache:
+            self.df = st.session_state.data_cache[cache_key]
+            st.session_state.df = self.df
+            st.rerun()
+            return
         """Load data synchronously"""
         with st.status(f"**Chargement des données pour {self.selected_ticker}...**", expanded=True) as status:
             st.write("Récupération des données depuis Yahoo Finance")
@@ -266,6 +276,9 @@ class Dashboard:
             except Exception as e:
                 status.update(label="Erreur lors du chargement", state="error")
                 st.error(f"Erreur : {str(e)}")
+        if 'data_cache' not in st.session_state:
+            st.session_state.data_cache = {}
+            st.session_state.data_cache[cache_key] = self.df
     def _display_kpis(self):
         """Display key indicators with improved style"""
         cols = st.columns(4)
@@ -367,12 +380,17 @@ class Dashboard:
         
         with tab5:  
             self._display_geo_influence()
+
     def _display_geo_influence(self):
+        @st.cache_data(ttl=86400)  # Cache de 24h
+        def get_cached_geo_data(ticker):
+            fetcher = GeoDataFetcher()
+            return fetcher.get_geo_data(ticker)
         """Display geographical influence map with Plotly"""
         st.subheader("Influence géographique")
         
         fetcher = GeoDataFetcher()
-        geo_data = fetcher.get_geo_data(self.selected_ticker)
+        geo_data = get_cached_geo_data(self.selected_ticker)
         df_geo = fetcher.to_dataframe(geo_data)
         
         if df_geo.empty:

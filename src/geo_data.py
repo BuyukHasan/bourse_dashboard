@@ -344,6 +344,7 @@ class GeoDataFetcher:
         }
     
     def get_geo_data(self, ticker):
+        MAX_COUNTRIES = 5
         # Récupérer le pays d'origine
         origin_country = self.company_origins.get(ticker, "USA")
         
@@ -355,7 +356,8 @@ class GeoDataFetcher:
         }]
         
         # Ajouter des pays secondaires pertinents selon le pays d'origine
-        secondary_countries = self._get_relevant_secondary_countries(origin_country)
+        relevant_countries = self._get_relevant_secondary_countries(origin_country)
+        secondary_countries = relevant_countries[:MAX_COUNTRIES-1]
         
         # Répartir les 15% restants entre les pays secondaires
         total_weight = 0.15

@@ -159,10 +159,15 @@ class Visualizer:
         return self
 
     def draw_cumulative_returns(self, overlay=False, color='blue'):
-        """Plot cumulative returns"""
-        self._check_columns(['returns'])
-        dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
-        cumulative_returns = (1 + self.df['returns']).cumprod() - 1
+        """Plot cumulative returns with automatic fallback if 'returns' column is missing"""
+        try:
+            self._check_columns(['returns'])
+            dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
+            cumulative_returns = (1 + self.df['returns']).cumprod() - 1
+        except ValueError:
+            # Fallback si 'returns' n'existe pas
+            self.df['returns'] = self.df['Close'].pct_change().fillna(0)
+            cumulative_returns = (1 + self.df['returns']).cumprod() - 1
         
         self._add_trace(
             go.Scatter(

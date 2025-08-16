@@ -5,13 +5,14 @@ from src.dashboard import Dashboard
 from src.portfolio_manager import PortfolioManager
 from src.reddit_analyzer import RedditSentiment
 from src.news_fetcher import NewsFetcher
-from src.css import Cssdash  # Import de la classe CSS
+from src.css import Cssdash  
 from src.geo_data import GeoDataFetcher
 import random
 import pandas as pd
 import time
 import plotly.graph_objects as go
 import streamlit as st
+import plotly.express as px
 from datetime import datetime
 import streamlit as st
 import threading
@@ -193,7 +194,6 @@ def test_technical_analyzer(df):
     print(analyzer.df.tail(3)[['Close', 'MA_50', 'MA_200', 'rsi', 'Signal', 'Daily_Return']])
     
     return True
-
 def test_multi_asset_comparison():
     """Multi-asset comparison test"""
     print("\n" + "="*50)
@@ -238,6 +238,10 @@ def test_multi_asset_comparison():
 
 def portfolio_mode():
     st.title("🎯 Virtual Portfolio")
+    
+    # Réinitialiser l'état du portfolio à chaque entrée dans le mode
+    if 'portfolio_results' in st.session_state:
+        del st.session_state.portfolio_results
     
     # Catégories d'actifs étendues
     asset_categories = {
@@ -330,63 +334,206 @@ def portfolio_mode():
         ]
     }
     
-    col1, col2 = st.columns(2)
-    with col1:
-        # Sélecteur de catégorie
-        selected_category = st.selectbox(
-            "Type d'actif",
-            list(asset_categories.keys())
-        )
-        
-        # Sélecteur de tickers basé sur la catégorie
-        selected_tickers = st.multiselect(
-            "Sélectionnez des actifs",
-            asset_categories[selected_category],
-            default=asset_categories[selected_category][:2]
-        )
-    with col2:
-        weights = []
-        for ticker in selected_tickers:
-            weight = st.number_input(
-                f"Poids de {ticker} (%)", 
-                min_value=0, max_value=100, value=50
-            )
-            weights.append(weight / 100)
+    # Nouvelle interface multi-colonnes pour la sélection des actifs
+    st.subheader("📌 Sélection des actifs par secteur")
     
-    if sum(weights) != 1.0:
-        st.error("La somme des poids doit être égale à 100% !")
+    # Créer 3 colonnes pour afficher les secteurs
+    cols = st.columns(3)
+    selected_tickers = []
+    
+    # Afficher chaque catégorie dans une colonne
+    for i, category in enumerate(asset_categories.keys()):
+        with cols[i % 3]:
+            tickers = st.multiselect(
+                f"{category}",
+                asset_categories[category],
+                key=f"cat_{category}"
+            )
+            selected_tickers.extend(tickers)
+    
+    if not selected_tickers:
+        st.warning("Veuillez sélectionner au moins un actif")
         return
     
-    tickers_weights = dict(zip(selected_tickers, weights))
+    # Section pour les poids
+    st.subheader("📊 Définir les poids des actifs")
     
-    if st.button("Lancer la simulation"):
+    # Calculer le poids par défaut (répartition égale)
+    default_weight = 100 // len(selected_tickers) if selected_tickers else 0
+    
+    # Créer 4 colonnes pour les poids
+    weight_cols = st.columns(4)
+    weights = []
+    
+    for i, ticker in enumerate(selected_tickers):
+        with weight_cols[i % 4]:
+            weight = st.slider(
+                f"Poids de {ticker} (%)",
+                0, 100, 
+                value=default_weight,
+                key=f"weight_{ticker}"
+            )
+            weights.append(weight)
+    
+    # Vérifier et normaliser les poids
+    total_weight = sum(weights)
+    
+    if abs(total_weight - 100) > 1:
+        st.warning(f"⚠️ La somme des poids est {total_weight}%. Normalisation automatique appliquée.")
+        normalized_weights = [round((w / total_weight) * 100, 2) for w in weights]
+    else:
+        normalized_weights = weights
+    
+    # Afficher les poids normalisés
+    with st.expander("Voir la répartition finale des poids"):
+        for ticker, weight in zip(selected_tickers, normalized_weights):
+            st.write(f"- {ticker}: {weight:.2f}%")
+    
+    # Créer le dictionnaire tickers/poids
+    tickers_weights = dict(zip(selected_tickers, [w/100 for w in normalized_weights]))
+    
+    if st.button("Lancer la simulation", key="run_portfolio_sim"):
+        # Réinitialiser les résultats précédents
+        if 'portfolio_results' in st.session_state:
+            del st.session_state.portfolio_results
+        
         with st.status("**Construction du portefeuille...**", expanded=True) as status:
             pm = PortfolioManager(tickers_weights)
-            pm.fetch_portfolio_data(period="6mo", status_container=status)
             
+            status.write("⏳ Téléchargement des données...")
+            try:
+                data, errors = pm.fetch_portfolio_data(period="6mo")
+                pm.data = data
+                
+                # Afficher les erreurs
+                if errors:
+                    for t, err in errors.items():
+                        status.warning(f"{t}: {err}")
+                        
+                # Vérifier qu'on a au moins 2 jeux de données
+                if len(data) < 2:
+                    status.error("❌ Insuffisant de données pour la simulation")
+                    st.stop()
+            except Exception as e:
+                status.error(f"Erreur de récupération des données : {str(e)}")
+                st.stop()
+            
+            # Étape 2: Calcul des rendements pondérés
+            status.write("⏳ Calcul des rendements pondérés...")
+            try:
+                returns = pm.calculate_weighted_returns()
+            except Exception as e:
+                status.error(f"Erreur de calcul des rendements : {str(e)}")
+                st.stop()
+            
+            # Étape 3: Calcul des métriques de performance
             status.write("⏳ Calcul des performances...")
-            returns = pm.calculate_weighted_returns()
-            metrics = pm.get_performance_metrics()
+            try:
+                metrics = pm.get_performance_metrics()
+            except Exception as e:
+                status.error(f"Erreur de calcul des performances : {str(e)}")
+                st.stop()
             
+            # Étape 4: Calcul de l'influence géographique combinée
+            status.write("⏳ Analyse de l'influence géographique...")
+            try:
+                geo_data = pm.get_combined_geo_influence()
+            except Exception as e:
+                status.warning(f"Attention : {str(e)}")
+                geo_data = None
+            
+            st.session_state.portfolio_results = {
+                'returns': returns,
+                'metrics': metrics,
+                'geo_data': geo_data
+            }
             status.update(label="Simulation terminée !", state="complete")
         
-        fig = Visualizer(returns, rows=1, columns=1)
-        fig._add_trace(
-            go.Scatter(
-                x=returns.index,
-                y=returns['Cumulative_Return'],
-                name="Performance du portefeuille",
-                line=dict(color="royalblue", width=3)
-            ),
-            row=1, col=1
-        )
-        st.plotly_chart(fig.fig, use_container_width=True)
-        
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Rendement annualisé", f"{metrics['annualized_return']:.2f}%")
-        col2.metric("Volatilité", f"{metrics['volatility']:.2f}%")
-        col3.metric("Ratio de Sharpe", f"{metrics['sharpe_ratio']:.2f}")
-
+        if 'portfolio_results' in st.session_state:
+            results = st.session_state.portfolio_results
+            returns = results['returns']
+            metrics = results['metrics']
+            geo_data = results['geo_data']
+            
+            # Création du graphique de performance
+            if not returns.empty:
+                fig = Visualizer(returns, rows=1, columns=1)
+                fig._add_trace(
+                    go.Scatter(
+                        x=returns.index,
+                        y=returns['Cumulative_Return'],
+                        name="Performance du portefeuille",
+                        line=dict(color="royalblue", width=3)
+                    ),
+                    row=1, col=1
+                )
+                fig.fig.update_layout(
+                    title="Performance cumulative du portefeuille",
+                    yaxis_title="Rendement cumulé (%)",
+                    hovermode="x unified"
+                )
+                st.plotly_chart(fig.fig, use_container_width=True)
+            else:
+                st.warning("Aucune donnée de rendement disponible")
+            
+            # Affichage des métriques de performance
+            st.subheader("📈 Métriques de performance")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Rendement annualisé", f"{metrics.get('annualized_return', 0):.2f}%")
+            col2.metric("Volatilité", f"{metrics.get('volatility', 0):.2f}%")
+            col3.metric("Ratio de Sharpe", f"{metrics.get('sharpe_ratio', 0):.2f}")
+            
+            # Affichage de l'influence géographique
+            st.subheader("🌍 Influence Géographique Combinée")
+            
+            if geo_data:
+                df_geo = pd.DataFrame(geo_data)
+                df_geo['size'] = df_geo['weight'] * 50
+                
+                fig = px.scatter_geo(
+                    df_geo,
+                    lat='lat',
+                    lon='lon',
+                    size='size',
+                    color='weight',
+                    color_continuous_scale='Viridis',
+                    hover_name='country',
+                    hover_data={'weight': ':.2%', 'lat': False, 'lon': False, 'size': False},
+                    projection='natural earth',
+                    title="Influence Géographique du Portefeuille"
+                )
+                
+                fig.update_layout(
+                    geo=dict(
+                        bgcolor='rgba(0,0,0,0)',
+                        landcolor='lightgray',
+                        showcountries=True,
+                        countrycolor='gray'
+                    ),
+                    margin=dict(l=0, r=0, t=40, b=0),
+                    coloraxis_colorbar=dict(title="Influence", tickformat=".0%")
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Tableau détaillé
+                with st.expander("Détails par pays"):
+                    st.dataframe(
+                        df_geo[['country', 'weight']].sort_values('weight', ascending=False),
+                        column_config={
+                            "country": "Pays",
+                            "weight": st.column_config.ProgressColumn(
+                                "Influence",
+                                format="%.2f%%",
+                                min_value=0,
+                                max_value=1
+                            )
+                        },
+                        hide_index=True,
+                        use_container_width=True
+                    )
+            else:
+                st.warning("Aucune donnée géographique disponible pour ce portefeuille")
 def test_news_fetcher():
     """NewsFetcher test with simulation"""
     print("\n" + "="*50)
@@ -501,15 +648,20 @@ def test_alert_system():
         print(f"❌ Error: {str(e)}")
         return False
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_initial_data():
-    fetcher = DataFetcher("AAPL")
-    df = fetcher.fetch_data(period="6mo")
+@st.cache_data(ttl=600, show_spinner=False)
+def load_initial_data(ticker="AAPL", period="6mo"):
+    fetcher = DataFetcher(ticker)
+    df = fetcher.fetch_data(period=period)
     analyzer = TechnicalAnalyzer(df)
     analyzer.compute_50_200_days()
     analyzer.add_rsi()
+    analyzer.calculate_volatility()
+    analyzer.add_signal_column()
+    analyzer.add_performance_column()
+    analyzer.add_returns_columns()
     return analyzer.df
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_comparison_data(tickers, start_date, end_date):
     compare_data = {}
     for t in tickers:
@@ -522,10 +674,18 @@ def load_comparison_data(tickers, start_date, end_date):
 
 @st.cache_data(ttl=3600, show_spinner=False, hash_funcs={pd.Timestamp: lambda _: None})
 def fetch_single_ticker_data(ticker, start_date, end_date):
-    """Fonction threadée pour récupérer les données d'un ticker"""
+    """Fonction threadée avec cache pour récupérer les données d'un ticker"""
     try:
+        # Utiliser une clé de cache unique basée sur les paramètres
+        cache_key = f"{ticker}_{start_date}_{end_date}"
+        
+        # Vérifier si les données sont déjà en cache
+        if cache_key in st.session_state.get('ticker_cache', {}):
+            return ticker, st.session_state.ticker_cache[cache_key]
+        
         fetcher = DataFetcher(ticker)
         df = fetcher.fetch_data(start=start_date, end=end_date)
+        
         if not df.empty:
             analyzer = TechnicalAnalyzer(df)
             analyzer.compute_50_200_days()
@@ -534,6 +694,12 @@ def fetch_single_ticker_data(ticker, start_date, end_date):
             analyzer.add_signal_column()
             analyzer.add_performance_column()
             analyzer.add_returns_columns()
+            
+            # Mettre en cache
+            if 'ticker_cache' not in st.session_state:
+                st.session_state.ticker_cache = {}
+            st.session_state.ticker_cache[cache_key] = analyzer.df
+            
             return ticker, analyzer.df
         return ticker, None
     except Exception as e:
@@ -655,6 +821,8 @@ def main():
 
     # Le reste du code main...
     if mode == "Tableau de bord individuel":
+        if 'df' not in st.session_state:
+            st.session_state.df = load_initial_data()
         if 'df' not in st.session_state:
             fetcher = DataFetcher("AAPL")
             df = fetcher.fetch_data(period="6mo")
@@ -876,5 +1044,13 @@ def main():
     if elapsed < min_loading_time:
         time.sleep(min_loading_time - elapsed)
     loading_placeholder.empty()
-
+    # Ajouter un bouton pour vider le cache
+    with st.sidebar.expander("Options avancées"):
+        if st.button("Vider le cache", help="Force le rechargement de toutes les données"):
+            st.cache_data.clear()
+            if 'ticker_cache' in st.session_state:
+                del st.session_state.ticker_cache
+            if 'data_cache' in st.session_state:
+                del st.session_state.data_cache
+            st.rerun()
 main()

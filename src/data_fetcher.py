@@ -11,7 +11,7 @@ class DataFetcher:
         except:
             print("⚠️ Unknown or misspelled ticker symbol")
 
-    def fetch_data(self, period=None, start=None, end=None, interval="1d"):
+    def fetch_data(self, period=None, start=None, end=None, interval="1d" , timeout=10):
         # Convertir les dates en string si ce sont des objets datetime
         if isinstance(start, pd.Timestamp):
             start = start.strftime("%Y-%m-%d")
@@ -34,7 +34,8 @@ class DataFetcher:
                 period=period,
                 interval=interval,
                 start=start,
-                end=end
+                end=end,
+                timeout=timeout
             )
         
         return self._clean_data(data)
