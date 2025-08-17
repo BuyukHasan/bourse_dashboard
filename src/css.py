@@ -47,6 +47,22 @@ class Cssdash:
             "accent1": "#9900ff",
             "accent2": "#ff00cc",
             "text": "#f0e0ff"
+        },
+        "Retro Dark": {
+        "primary": "#001100",  # Fond très sombre
+        "secondary": "#00ff00",  # Vert rétro
+        "background": "#000800",  # Noir
+        "accent1": "#00cc00",
+        "accent2": "#008800",
+        "text": "#00ff00"  # Texte vert vif
+        },
+        "Crypto Fever": {
+        "primary": "#0a0a2a",  # Fond bleu très foncé
+        "secondary": "#ff8c00",  # Orange fluo
+        "background": "#000022",  # Bleu nuit
+        "accent1": "#00ffff",   # Cyan
+        "accent2": "#ff00ff",   # Magenta
+        "text": "#ffffff"       # Texte blanc
         }
     }
 
@@ -226,25 +242,11 @@ class Cssdash:
                 box-shadow: 0 0 30px {colors['accent1']}, 
                             0 0 50px rgba(0, 255, 255, 0.3);
             }}
-            
             .loading-logo {{
-                width: 180px;
-                height: 180px;
-                position: relative;
-                margin: 0 auto 20px;
-                animation: pulse 2.5s infinite ease-in-out;
-            }}
-            
-            .logo-circle {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                border-radius: 50%;
-                border: 3px solid transparent;
-                border-top-color: {colors['accent1']};
-                animation: spin 1.5s linear infinite;
+            width: 180px;
+            height: 180px;
+            position: relative;
+            margin: 0 auto 20px;
             }}
             
             .logo-circle:nth-child(2) {{
@@ -256,20 +258,6 @@ class Cssdash:
                 left: 10px;
             }}
             
-            .logo-text {{
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: {colors['accent1']};
-                font-weight: bold;
-                font-size: 1.4rem;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                text-shadow: 0 0 10px {colors['accent1']},
-                            0 0 20px {colors['accent1']};
-                animation: text-pulse 1.5s infinite alternate;
-            }}
             
             .loading-text {{
                 color: {colors['accent1']};
@@ -743,5 +731,112 @@ class Cssdash:
                 color: {colors['accent2']} !important;
                 opacity: 0.7 !important;
             }}
+        .triangle {{
+                width: 180px;
+                height: 180px;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                animation: spin 1s linear infinite, pulse-danger 0.8s infinite alternate;
+                z-index: 1;
+                background: 
+                    linear-gradient(45deg, 
+                        #ff0000 25%, 
+                        #000000 25%, 
+                        #000000 50%, 
+                        #ff0000 50%, 
+                        #ff0000 75%, 
+                        #000000 75%);
+                background-size: 20px 20px;
+                clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            }}
+
+        .eye {{
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 40px;
+                height: 40px;
+                background: #8b0000; /* Rouge foncé */
+                border-radius: 50%;
+                box-shadow: 
+                    0 0 0 5px #ff0000,
+                    0 0 20px #ff0000;
+                animation: blink 0.8s infinite, glow-red 0.5s infinite alternate;
+                z-index: 2;
+                overflow: hidden;
+            }}
+
+        .eye::before {{
+                content: '';
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 12px;
+                height: 12px;
+                background: #ff4500; /* Orange rougeâtre */
+                border-radius: 50%;
+                box-shadow: 0 0 10px #ff4500;
+            }}
+        @keyframes pulse-danger {{
+                0% {{ opacity: 0.8; transform: translate(-50%, -50%) scale(1); }}
+                100% {{ opacity: 1; transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 30px #ff0000; }}
+            }}
+        @keyframes glow-red {{
+                0% {{ box-shadow: 0 0 0 5px #ff0000, 0 0 20px #ff0000; }}
+                100% {{ box-shadow: 0 0 0 10px #ff0000, 0 0 40px #ff0000; }}
+            }}
+        
+        @keyframes blink {{
+                0%, 45%, 55%, 100% {{ height: 40px; }}
+                50% {{ height: 5px; }}
+            }}
+
+        /* Conserver l'animation spin existante mais la modifier légèrement */
+        @keyframes spin {{
+                0% {{ transform: translate(-50%, -50%) rotate(0deg); }}
+                100% {{ transform: translate(-50%, -50%) rotate(360deg); }}
+            }}
+         @keyframes floatBlock {{
+                0% {{ transform: translateY(-100px) rotate(0deg); opacity: 0; }}
+                10% {{ opacity: 1; }}
+                90% {{ opacity: 1; }}
+                100% {{ transform: translateY(100vh) rotate(360deg); opacity: 0; }}
+        }}
+
+        .block-animation {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: -1;
+            }}
+
+        .block {{
+                position: absolute;
+                width: 20px;
+                height: 20px;
+                background: linear-gradient(45deg, {colors['accent2']}, {colors['accent1']});
+                border-radius: 4px;
+                animation: floatBlock 15s linear infinite;
+                opacity: 0;
+            }}
+
+            /* Génération dynamique des blocs */
+            .block:nth-child(1) {{ left: 5%; animation-delay: 0s; }}
+            .block:nth-child(2) {{ left: 15%; animation-delay: 2s; }}
+            .block:nth-child(3) {{ left: 25%; animation-delay: 4s; }}
+            .block:nth-child(4) {{ left: 35%; animation-delay: 6s; }}
+            .block:nth-child(5) {{ left: 45%; animation-delay: 8s; }}
+            .block:nth-child(6) {{ left: 55%; animation-delay: 10s; }}
+            .block:nth-child(7) {{ left: 65%; animation-delay: 12s; }}
+            .block:nth-child(8) {{ left: 75%; animation-delay: 14s; }}
+            .block:nth-child(9) {{ left: 85%; animation-delay: 16s; }}
+            .block:nth-child(10) {{ left: 95%; animation-delay: 18s; }}
+
         </style>
         """

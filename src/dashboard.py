@@ -6,6 +6,7 @@ from src.visualizer import Visualizer
 from src.news_fetcher import NewsFetcher
 from src.reddit_analyzer import RedditSentiment
 from src.geo_data import GeoDataFetcher
+from src.asset_categories import AssetCategories
 import plotly.express as px
 import pandas as pd
 import threading
@@ -14,95 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 class Dashboard:
     def __init__(self, data_frame):
         # Définir les catégories d'actifs étendues
-        self.asset_categories = {
-        "Technologie": [
-            "AAPL", "MSFT", "GOOGL", "META", "NVDA", "TSLA", "ADBE", "INTC", "CSCO", 
-            "ORCL", "IBM", "QCOM", "TXN", "AVGO", "AMD", "CRM", "ADP", "INTU", "NOW", 
-            "AMAT", "MU", "ADI", "LRCX", "KLAC", "CDNS", "SNPS", "ANET", "FTNT", "NXPI", 
-            "MRVL", "PANW", "PYPL", "SQ", "SHOP", "ZM", "TEAM", "OKTA", "CRWD", "ZS", "NET"
-        ],
-        "Services Publics": [
-            "NEE", "DUK", "SO", "D", "EXC", "AEP", "PEG", "ED", "EIX", "ES", "FE", 
-            "PPL", "WEC", "XEL", "AEE", "ETR", "CMS", "AWK", "ATO", "SRE", "CNP", 
-            "PCG", "NI", "DTE", "LNT", "D", "PEG", "EVRG", "AGR", "BEP", "BIPC"
-        ],
-        "Santé": [
-            "JNJ", "PFE", "UNH", "MRK", "ABT", "TMO", "BMY", "AMGN", "GILD", "CVS", 
-            "LLY", "ABBV", "MDT", "VRTX", "REGN", "DHR", "SYK", "BDX", "ISRG", "ZTS", 
-            "HCA", "CI", "ANTM", "HUM", "IQV", "EW", "IDXX", "ALGN", "MRNA", "BNTX", 
-            "VTRS", "BAX", "BIIB", "ILMN", "DGX", "LH", "UHS", "HOLX", "DXCM", "STE"
-        ],
-        "Consommation": [
-            "PG", "KO", "PEP", "WMT", "COST", "MO", "PM", "MDLZ", "CL", "KHC", "EL", 
-            "KMB", "STZ", "CLX", "SJM", "CHD", "CAG", "HSY", "GIS", "ADM", "TSN", 
-            "MKC", "CPB", "LW", "TAP", "BF-B", "MNST", "FLO", "SYY", "KR", "K", "COTY",
-            "TGT", "HD", "LOW", "DG", "DLTR", "FIVE", "BURL", "ROST", "TJX"
-        ],
-        "Finances": [
-            "JPM", "BAC", "V", "MA", "WFC", "C", "GS", "AXP", "MS", "BLK", "SCHW", 
-            "PYPL", "COF", "USB", "PNC", "TFC", "TD", "CME", "ICE", "AON", "MMC", 
-            "AJG", "SPGI", "MCO", "FIS", "FISV", "NDAQ", "CBOE", "MKTX", "RJF", "RY",
-            "BNS", "BMO", "ALLY", "KEY", "CFG", "HBAN", "MTB", "RF", "ZION"
-        ],
-        "Industriel": [
-            "GE", "HON", "MMM", "BA", "CAT", "UNP", "DE", "RTX", "LMT", "GD", "NOC", 
-            "ITW", "EMR", "ETN", "WM", "RSG", "WM", "FDX", "UPS", "CSX", "NSC", "CP", 
-            "CNI", "DAL", "UAL", "LUV", "AAL", "DOV", "FTV", "IR", "OTIS", "TT", "PH", 
-            "ROK", "SWK", "AME", "GNRC", "JCI", "PWR", "WAB", "XYL", "WSO", "FAST"
-        ],
-        "ETF Large Cap": [
-            "SPY", "IVV", "VOO", "VTI", "SCHX", "IWB", "ITOT", "VTV", "IWD", "SCHV", 
-            "VUG", "IWF", "SCHG", "QUAL", "MTUM", "USMV", "SPLG", "SPLV", "RSP", "VIG",
-            "DIA", "IWM", "IJH", "IJR", "VB", "VO", "VV", "MGK", "MGV", "VONE"
-        ],
-        "ETF Techno": [
-            "QQQ", "XLK", "VGT", "SMH", "ARKK", "SOXX", "FTEC", "IGV", "FDN", "SKYY", 
-            "WCLD", "PSI", "XNTK", "AIQ", "BOTZ", "ROBT", "ARKW", "ARKF", "FINX", "IPAY",
-            "XSW", "PSJ", "PSCT", "PTF", "TECL", "SOXL", "ROM", "USD", "FXL", "QTEC"
-        ],
-        "ETF Dividendes": [
-            "SCHD", "VYM", "DGRO", "SDY", "NOBL", "VIG", "DVY", "HDV", "SPYD", "FVD", 
-            "DIV", "PEY", "PFM", "KBWD", "QYLD", "XYLD", "RYLD", "DIVO", "SPHD", "JEPI",
-            "NUSI", "SRET", "ALTY", "GTO", "RDIV", "FDL", "DHS", "FVD", "SDOG", "DIVB"
-        ],
-        "Obligations Corporate": [
-            "LQD", "VCIT", "HYG", "JNK", "PFF", "VCLT", "VCIT", "VCSH", "IGIB", "IGSB", 
-            "SHYG", "SJNK", "HYLB", "USHY", "ANGL", "FALN", "HYLS", "HYXU", "IHY", "PHB",
-            "QLTA", "SLQD", "BSCQ", "BSJP", "BSJO", "BSJN", "BSJM", "BSJL", "BSJK", "BSJI"
-        ],
-        "Obligations Gouvernement": [
-            "GOVT", "TLT", "IEF", "SHY", "SPTS", "VGIT", "VGLT", "VGSH", "IEI", "SHV", 
-            "BIL", "SCHO", "SCHR", "SPTL", "TLO", "GVI", "ITE", "FIBR", "FTSM", "GOVZ",
-            "EDV", "ZROZ", "TLH", "IEF", "VGIT", "VGSH", "SCHR", "SPTI", "FIBR", "GOVI"
-        ],
-        "Matières Premières": [
-            "GLD", "SLV", "USO", "UNG", "DBA", "PDBC", "GSG", "IAU", "SLVO", "USL", 
-            "UCO", "SCO", "BOIL", "KOLD", "WEAT", "CORN", "SOYB", "CANE", "CPER", "PALL", 
-            "PPLT", "DBB", "DBC", "COMT", "FTGC", "BCD", "BCM", "JJG", "JJC", "LD"
-        ],
-        "Cryptomonnaies": [
-            "BTC-USD", "ETH-USD", "BNB-USD", "ADA-USD", "XRP-USD", "SOL-USD", "DOT-USD", 
-            "DOGE-USD", "AVAX-USD", "SHIB-USD", "MATIC-USD", "ATOM-USD", "LTC-USD", 
-            "UNI-USD", "LINK-USD", "ALGO-USD", "XLM-USD", "VET-USD", "ICP-USD", "FIL-USD",
-            "TRX-USD", "ETC-USD", "XMR-USD", "EGLD-USD", "AAVE-USD", "XTZ-USD", "EOS-USD",
-            "NEO-USD", "ZEC-USD", "DASH-USD"
-        ],
-        "Immobilier (REITs)": [
-            "O", "AMT", "PLD", "CCI", "EQIX", "DLR", "PSA", "SPG", "AVB", "EQR", 
-            "VTR", "WELL", "WY", "EXR", "MAA", "ESS", "UDR", "SBAC", "IRM", "ARE",
-            "REG", "KIM", "FRT", "VICI", "STOR", "NSA", "LAMR", "GLPI", "CPT", "ACC"
-        ],
-        "Énergie": [
-            "XOM", "CVX", "SHEL", "TTE", "COP", "EOG", "PXD", "MPC", "PSX", "VLO",
-            "OXY", "HES", "DVN", "FANG", "CTRA", "EQT", "MRO", "HAL", "SLB", "BKR",
-            "NOV", "FTI", "LNG", "ET", "EPD", "WMB", "OKE", "KMI", "TRP", "ENB"
-        ],
-        "Communication": [
-            "DIS", "NFLX", "CMCSA", "T", "VZ", "TMUS", "CHTR", "EA", "TTWO", "ATVI",
-            "ROKU", "LYV", "NWSA", "FOXA", "IPG", "OMC", "WPP", "DISH", "SIRI", "LGF-A",
-            "IAC", "MTCH", "BIDU", "JD", "BABA", "TME", "YY", "DOYU", "HUYA", "IQ"
-        ]
-    }
+        self.asset_categories = AssetCategories.get_all_categories()
         
         # Trouver le ticker initial à partir des données
         self.ticker = self._find_initial_ticker(data_frame)
@@ -315,6 +228,12 @@ class Dashboard:
                 value=f"{rsi_value:.1f}",
                 help="Indice de force relative - <30: Survente, >70: Surachat"
             )
+         # Mood Market (nouvelle section)
+        st.markdown("---")
+        self._display_market_mood()
+        
+        # Jauge Risque/Récompense
+        self._display_risk_reward()
 
     def _create_analysis_tabs(self):
         """Create analysis tabs with enriched content"""
@@ -489,7 +408,79 @@ class Dashboard:
         st.markdown("### Sentiment des réseaux sociaux")
         st.progress((reddit_data['positive'] / reddit_data['total']))
         st.caption(f"Positif: {reddit_data['positive']} | Neutre: {reddit_data['neutral']} | Négatif: {reddit_data['negative']}")
+    def _display_market_mood(self):
+        """Affiche l'humeur du marché avec des emojis géants"""
+        # Calcul des tendances
+        last_5_days = self.df['Close'].pct_change(5).iloc[-1] * 100
+        last_month = self.df['Close'].pct_change(20).iloc[-1] * 100
         
+        # Détermination de l'humeur
+        if last_5_days > 5:
+            mood = "🚀"  # Hausse forte
+            explanation = "Forte hausse récente"
+        elif last_5_days < -5:
+            mood = "😱"  # Krach
+            explanation = "Fort recul récent"
+        elif last_month > 10:
+            mood = "📈"  # Tendance haussière
+            explanation = "Bonne tendance mensuelle"
+        elif last_month < -10:
+            mood = "📉"  # Tendance baissière
+            explanation = "Tendance mensuelle négative"
+        else:
+            mood = "🥱"  # Stagnation
+            explanation = "Marché stagnant"
+        
+        # Affichage stylisé
+        st.markdown(f"""
+        <div style="text-align:center; margin: 30px 0;">
+            <div style="font-size: 80px; margin-bottom: 10px;">{mood}</div>
+            <div style="font-size: 20px; color: {st.session_state.theme_colors['accent1']}">
+                {explanation}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    def _display_risk_reward(self):
+        """Affiche la jauge risque/récompense"""
+        volatility = self.df['Volatility'].iloc[-1] * 100  # Volatilité en %
+        
+        # Détermination du niveau de risque
+        if volatility < 5:
+            level = "🟢 Faible"
+            position = 25
+            color = "#00ff00"
+        elif volatility < 15:
+            level = "🟡 Modéré"
+            position = 50
+            color = "#ffff00"
+        else:
+            level = "🔴 Élevé"
+            position = 85
+            color = "#ff0000"
+        
+        # Affichage de la jauge
+        st.markdown(f"""
+        <div style="margin: 30px 0; text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 10px; color: {st.session_state.theme_colors['text']}">
+                Ratio Risque/Récompense
+            </div>
+            <div style="background: #333; height: 30px; border-radius: 15px; position: relative; margin: 0 auto; max-width: 600px;">
+                <div style="position: absolute; width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
+                    <span>Élevé</span>
+                    <span>Équilibré</span>
+                    <span>Faible</span>
+                </div>
+                <div style="background: linear-gradient(to right, #ff0000, #ffff00, #00ff00); 
+                            height: 100%; border-radius: 15px; opacity: 0.6;"></div>
+                <div style="position: absolute; top: -5px; left: {position}%; 
+                            transform: translateX(-50%); width: 10px; height: 40px; 
+                            background: {color}; border-radius: 5px;"></div>
+            </div>
+            <div style="font-size: 24px; margin-top: 10px; color: {color}">
+                {level} • Volatilité: {volatility:.1f}%
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     def _add_data_download(self):
         csv_data = self.df.to_csv(index=False).encode('utf-8')
         today = datetime.now().strftime("%Y-%m-%d")
@@ -500,6 +491,7 @@ class Dashboard:
             mime='text/csv',
             key=f"download_btn_{datetime.now().timestamp()}"
         )
+    
 
     def display(self):
         """Version with alert system"""
