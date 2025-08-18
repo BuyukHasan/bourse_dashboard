@@ -1,4 +1,6 @@
 class Cssdash:
+    """Class to manage CSS themes and styles"""
+    
     themes = {
         "Corporate Bonds": {
         "primary": "#002b36",
@@ -49,39 +51,40 @@ class Cssdash:
             "text": "#f0e0ff"
         },
         "Retro Dark": {
-        "primary": "#001100",  # Fond très sombre
-        "secondary": "#00ff00",  # Vert rétro
-        "background": "#000800",  # Noir
+        "primary": "#001100",  # Very dark background
+        "secondary": "#00ff00",  # Retro green
+        "background": "#000800",  # Black
         "accent1": "#00cc00",
         "accent2": "#008800",
-        "text": "#00ff00"  # Texte vert vif
+        "text": "#00ff00"  # Bright green text
         },
         "Crypto Fever": {
-        "primary": "#0a0a2a",  # Fond bleu très foncé
-        "secondary": "#ff8c00",  # Orange fluo
-        "background": "#000022",  # Bleu nuit
+        "primary": "#0a0a2a",  # Very dark blue background
+        "secondary": "#ff8c00",  # Fluorescent orange
+        "background": "#000022",  # Night blue
         "accent1": "#00ffff",   # Cyan
         "accent2": "#ff00ff",   # Magenta
-        "text": "#ffffff"       # Texte blanc
+        "text": "#ffffff"       # White text
         }
     }
 
     @classmethod
     def get_css(cls, colors):
+        """Generate CSS styles based on theme colors"""
         return f"""
         <style>
-            /* Fond principal et conteneurs */
+            /* Main background and containers */
             .stApp, .main, .block-container {{
                 background-color: {colors['background']} !important;
                 color: {colors['text']} !important;
             }}
         
-            /* Texte général */
+            /* General text */
             p, div, h1, h2, h3, h4, h5, h6, span, label {{
                 color: {colors['text']} !important;
             }}
         
-            /* Inputs et sélecteurs */
+            /* Inputs and selectors */
             .stTextInput>div>div>input, 
             .stNumberInput>div>div>input,
             .stSelectbox>div>div>select,
@@ -91,7 +94,7 @@ class Cssdash:
                 border-color: {colors['secondary']} !important;
             }}
         
-            /* Métriques et indicateurs */
+            /* Metrics and indicators */
             .stMetric {{
                 border-left: 0.4rem solid {colors['secondary']};
                 padding: 1rem;
@@ -101,7 +104,7 @@ class Cssdash:
                 box-shadow: 0 0 15px {colors['accent1']};
             }}
         
-            /* Onglets */
+            /* Tabs */
             .stTabs {{
                 margin-bottom: 1rem;
             }}
@@ -166,7 +169,7 @@ class Cssdash:
                 to {{ transform: scaleX(1); }}
             }}
         
-            /* En-tête */
+            /* Header */
             .css-1vq4p4l {{
                 padding: 2rem 1rem;
                 background-color: {colors['primary']};
@@ -174,14 +177,14 @@ class Cssdash:
                 border-bottom: 2px solid {colors['accent1']};
             }}
         
-            /* Alertes */
+            /* Alerts */
             .stAlert {{
                 background-color: {colors['primary']};
                 border: 1px solid {colors['secondary']};
                 color: {colors['text']};
             }}
         
-            /* Boutons */
+            /* Buttons */
             .stButton>button {{
                 background-color: {colors['primary']};
                 color: {colors['text']};
@@ -202,22 +205,22 @@ class Cssdash:
                 background-color: {colors['primary']} !important;
             }}
         
-            /* Graphiques Plotly */
+            /* Plotly charts */
             .js-plotly-plot .plotly {{
                 background-color: {colors['primary']} !important;
             }}
         
-            /* Barre latérale */
+            /* Sidebar */
             [data-testid="stSidebar"] {{
                 background-color: {colors['primary']} !important;
             }}
         
-            /* Contraste amélioré pour les thèmes problématiques */
+            /* Improved contrast for problematic themes */
             .stMarkdown strong, .stMarkdown b {{
                 color: {colors['accent1']} !important;
             }}
             
-            /* Écran de chargement */
+            /* Loading screen */
             .loading-screen {{
                 position: fixed;
                 top: 0;
@@ -298,8 +301,8 @@ class Cssdash:
                 100% {{ opacity: 1; transform: translate(-50%, -50%) scale(1.05); }}
             }}
             
-            /* ===== CORRECTIONS AJOUTÉES POUR LES ÉLÉMENTS D'INTERFACE ===== */
-            /* Barre latérale - Titres */
+            /* ===== ADDED CORRECTIONS FOR UI ELEMENTS ===== */
+            /* Sidebar - Titles */
             .css-1vq4p4l h1, 
             .css-1vq4p4l h2, 
             .css-1vq4p4l h3, 
@@ -309,7 +312,7 @@ class Cssdash:
                 color: {colors['accent1']} !important;
             }}
             
-            /* Barre latérale - Texte général */
+            /* Sidebar - General text */
             .css-1vq4p4l, 
             .css-1vq4p4l p, 
             .css-1vq4p4l div, 
@@ -318,7 +321,7 @@ class Cssdash:
                 color: {colors['text']} !important;
             }}
             
-            /* Sélecteurs (Selectbox) */
+            /* Selectors (Selectbox) */
             .stSelectbox > label {{
                 color: {colors['text']} !important;
                 font-weight: bold;
@@ -367,7 +370,7 @@ class Cssdash:
                 color: {colors['primary']} !important;
             }}
             
-            /* Boutons */
+            /* Buttons */
             .stButton > button {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -381,7 +384,7 @@ class Cssdash:
                 box-shadow: 0 0 15px {colors['accent2']} !important;
             }}
             
-            /* Alertes */
+            /* Alerts */
             .stAlert {{
                 background-color: {colors['primary']} !important;
                 border: 1px solid {colors['secondary']} !important;
@@ -395,7 +398,7 @@ class Cssdash:
                 color: {colors['text']} !important;
             }}
             
-            /* Zone de texte */
+            /* Text area */
             .stTextArea > label {{
                 color: {colors['text']} !important;
                 font-weight: bold;
@@ -407,7 +410,7 @@ class Cssdash:
                 border: 1px solid {colors['secondary']} !important;
             }}
             
-            /* Barre de progression */
+            /* Progress bar */
             .stProgress > div > div > div {{
                 background-color: {colors['accent1']} !important;
             }}
@@ -418,7 +421,7 @@ class Cssdash:
                 border-right-color: transparent !important;
             }}
             
-            /* Placeholder texte */
+            /* Placeholder text */
             ::placeholder {{
                 color: {colors['accent2']} !important;
                 opacity: 0.7 !important;
@@ -431,12 +434,12 @@ class Cssdash:
                 border: 1px solid {colors['secondary']} !important;
             }}
             
-            /* Contenu des tooltips */
+            /* Tooltip content */
             .stTooltip p {{
                 color: {colors['text']} !important;
             }}
             
-            /* Sélecteur de thème */
+            /* Theme selector */
             .stRadio > label {{
                 color: {colors['text']} !important;
                 font-weight: bold;
@@ -459,77 +462,77 @@ class Cssdash:
                 font-weight: bold;
             }}
             
-            /* ===== CORRECTIONS SPÉCIFIQUES POUR LES SÉLECTEURS ===== */
-            /* Cible tous les widgets de sélection */
+            /* ===== SPECIFIC CORRECTIONS FOR SELECTORS ===== */
+            /* Target all selection widgets */
             div[data-baseweb="select"] > div:first-child {{
                 background-color: {colors['primary']} !important;
                 border-color: {colors['secondary']} !important;
                 color: {colors['text']} !important;
             }}
             
-            /* Texte dans les sélecteurs */
+            /* Text in selectors */
             div[data-baseweb="select"] div {{
                 color: {colors['text']} !important;
             }}
             
-            /* Icônes des sélecteurs */
+            /* Selector icons */
             div[data-baseweb="select"] svg {{
                 fill: {colors['accent1']} !important;
             }}
             
-            /* Options du menu déroulant */
+            /* Dropdown menu options */
             div[data-baseweb="popover"] div {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
             }}
             
-            /* Options au survol */
+            /* Hover options */
             div[data-baseweb="popover"] li:hover {{
                 background-color: {colors['accent1']} !important;
                 color: {colors['primary']} !important;
             }}
             
-            /* Sélecteur de mode dans la sidebar */
+            /* Mode selector in sidebar */
             .stSidebar div[data-baseweb="select"] {{
                 background-color: {colors['background']} !important;
             }}
             
-            /* Multiselect - éléments sélectionnés */
+            /* Multiselect - selected items */
             span[data-baseweb="tag"] {{
                 background-color: {colors['accent1']} !important;
                 color: {colors['primary']} !important;
             }}
             
-            /* Date picker - calendrier */
+            /* Date picker - calendar */
             .rdrMonth {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
             }}
             
-            /* Boutons du date picker */
+            /* Date picker buttons */
             .rdrDayToday span:after {{
                 background-color: {colors['accent1']} !important;
             }}
             
-            /* Inputs de date */
+            /* Date inputs */
             input[data-baseweb="input"] {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
                 border-color: {colors['secondary']} !important;
             }}
             
-            /* Forcer la couleur du texte dans tous les widgets */
+            /* Force text color in all widgets */
             .st-bb, .st-at, .st-ae, .st-af, .st-ag, .stSelectbox label, .stDateInput label, .stMultiSelect label {{
                 color: {colors['text']} !important;
             }}
             
-            /* Conteneur principal de la sidebar */
+            /* Main sidebar container */
             [data-testid="stSidebar"] > div:first-child {{
                 background-color: {colors['primary']} !important;
             }}
             
-            /* ===== CORRECTIONS AJOUTÉES POUR LES ÉLÉMENTS RÉSISTANTS ===== */
-            /* Start date & End date - renforcement */
+            /* ===== ADDED CORRECTIONS FOR RESISTANT ELEMENTS ===== */
+            /* Start date & End date - reinforcement */
             div[data-testid="stDateInput"] > div > div > input {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -545,7 +548,7 @@ class Cssdash:
                 fill: {colors['accent1']} !important;
             }}
 
-            /* Threshold (input numérique) - renforcement */
+            /* Threshold (numeric input) - reinforcement */
             div[data-testid="stNumberInput"] > div > div > input {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -561,7 +564,7 @@ class Cssdash:
                 fill: {colors['accent1']} !important;
             }}
 
-            /* Bouton Add Alert - renforcement */
+            /* Add Alert button - reinforcement */
             div[data-testid="stButton"] > button {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -575,7 +578,7 @@ class Cssdash:
                 box-shadow: 0 0 15px {colors['accent2']} !important;
             }}
 
-            /* Labels des éléments résistants */
+            /* Labels for resistant elements */
             div[data-testid="stDateInput"] label,
             div[data-testid="stNumberInput"] label,
             div[data-testid="stButton"] span {{
@@ -583,8 +586,8 @@ class Cssdash:
                 font-weight: bold !important;
             }}
 
-            /* ===== SURCHARGE POUR LES POPOVERS ===== */
-            /* Calendrier des date pickers */
+            /* ===== OVERLOAD FOR POPOVERS ===== */
+            /* Date picker calendar */
             div[data-baseweb="popover"] {{
                 background-color: {colors['primary']} !important;
                 border: 1px solid {colors['secondary']} !important;
@@ -599,7 +602,7 @@ class Cssdash:
                 color: {colors['primary']} !important;
             }}
 
-            /* Jours sélectionnés dans le calendrier */
+            /* Selected days in calendar */
             .rdrDayToday .rdrDayNumber span:after {{
                 background-color: {colors['accent1']} !important;
             }}
@@ -608,13 +611,13 @@ class Cssdash:
                 background-color: {colors['accent1']} !important;
             }}
 
-            /* Boutons de navigation calendrier */
+            /* Calendar navigation buttons */
             .rdrNextButton i, .rdrPprevButton i {{
                 border-color: {colors['accent1']} !important;
             }}
 
-            /* ===== CORRECTIONS SUPPLÉMENTAIRES POUR LES WIDGETS ===== */
-            /* Conteneurs des widgets */
+            /* ===== ADDITIONAL CORRECTIONS FOR WIDGETS ===== */
+            /* Widget containers */
             [data-testid="stForm"] {{
                 border: 1px solid {colors['secondary']} !important;
                 border-radius: 8px !important;
@@ -622,26 +625,26 @@ class Cssdash:
                 margin-bottom: 15px !important;
             }}
 
-            /* Correction finale des textes récalcitrants */
+            /* Final correction for recalcitrant texts */
             .stRadio label, .stSelectbox label, .stDateInput label, 
             .stNumberInput label, .stButton label, .stTextInput label {{
                 color: {colors['text']} !important;
                 font-weight: bold !important;
             }}
 
-            /* Correction des icônes dans les inputs */
+            /* Correction of icons in inputs */
             input ~ div > div > svg {{
                 fill: {colors['accent1']} !important;
             }}
             
-            /* ===== SOLUTION NUCLÉAIRE ===== */
-            /* Applique le style à TOUS les éléments enfants de stApp */
+            /* ===== NUCLEAR SOLUTION ===== */
+            /* Apply style to ALL children of stApp */
             .stApp * {{
                 color: {colors['text']} !important;
                 font-family: inherit !important;
             }}
 
-            /* Force le style sur tous les inputs */
+            /* Force style on all inputs */
             input, select, textarea, button {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -650,7 +653,7 @@ class Cssdash:
                 padding: 8px 12px !important;
             }}
 
-            /* Style spécifique pour les boutons */
+            /* Specific style for buttons */
             button {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -665,7 +668,7 @@ class Cssdash:
                 box-shadow: 0 0 10px {colors['accent2']} !important;
             }}
 
-            /* Style pour les labels */
+            /* Style for labels */
             label {{
                 color: {colors['text']} !important;
                 font-weight: bold !important;
@@ -673,7 +676,7 @@ class Cssdash:
                 display: block !important;
             }}
 
-            /* Calendrier - solution radicale */
+            /* Calendar - radical solution */
             .rdr-Month, 
             .rdr-Days, 
             .rdr-WeekDays {{
@@ -696,26 +699,26 @@ class Cssdash:
                 color: {colors['primary']} !important;
             }}
 
-            /* Icônes - tout forcer */
+            /* Icons - force everything */
             svg {{
                 fill: {colors['accent1']} !important;
                 stroke: {colors['accent1']} !important;
             }}
 
-            /* Conteneurs - tout forcer */
+            /* Containers - force everything */
             div[data-baseweb] {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
             }}
 
-            /* Overlay pour les popups */
+            /* Overlay for popups */
             [data-baseweb="popover"] {{
                 background-color: {colors['primary']} !important;
                 border: 2px solid {colors['secondary']} !important;
                 box-shadow: 0 0 15px {colors['accent1']} !important;
             }}
 
-            /* Éléments de liste */
+            /* List items */
             li {{
                 background-color: {colors['primary']} !important;
                 color: {colors['text']} !important;
@@ -726,7 +729,7 @@ class Cssdash:
                 color: {colors['primary']} !important;
             }}
 
-            /* Solution finale pour les placeholders */
+            /* Final solution for placeholders */
             ::placeholder {{
                 color: {colors['accent2']} !important;
                 opacity: 0.7 !important;
@@ -759,7 +762,7 @@ class Cssdash:
                 transform: translate(-50%, -50%);
                 width: 40px;
                 height: 40px;
-                background: #8b0000; /* Rouge foncé */
+                background: #8b0000; /* Dark red */
                 border-radius: 50%;
                 box-shadow: 
                     0 0 0 5px #ff0000,
@@ -776,7 +779,7 @@ class Cssdash:
                 right: 8px;
                 width: 12px;
                 height: 12px;
-                background: #ff4500; /* Orange rougeâtre */
+                background: #ff4500; /* Reddish orange */
                 border-radius: 50%;
                 box-shadow: 0 0 10px #ff4500;
             }}
@@ -794,7 +797,7 @@ class Cssdash:
                 50% {{ height: 5px; }}
             }}
 
-        /* Conserver l'animation spin existante mais la modifier légèrement */
+        /* Keep existing spin animation but modify slightly */
         @keyframes spin {{
                 0% {{ transform: translate(-50%, -50%) rotate(0deg); }}
                 100% {{ transform: translate(-50%, -50%) rotate(360deg); }}
@@ -826,7 +829,7 @@ class Cssdash:
                 opacity: 0;
             }}
 
-            /* Génération dynamique des blocs */
+            /* Dynamic block generation */
             .block:nth-child(1) {{ left: 5%; animation-delay: 0s; }}
             .block:nth-child(2) {{ left: 15%; animation-delay: 2s; }}
             .block:nth-child(3) {{ left: 25%; animation-delay: 4s; }}

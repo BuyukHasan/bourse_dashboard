@@ -2,10 +2,21 @@ import random
 import feedparser
 
 class NewsFetcher:
+    """Class to fetch company news"""
+    
     def __init__(self):
         pass
     
     def get_company_news(self, ticker):
+        """
+        Get company news with sentiment simulation
+        
+        Args:
+            ticker (str): Stock ticker symbol
+            
+        Returns:
+            list: News items with sentiment analysis
+        """
         sentiment_map = {
             "positive": 0.8,   # Positive sentiment score
             "neutral": 0.2,    # Neutral sentiment score

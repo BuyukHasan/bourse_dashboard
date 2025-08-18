@@ -1,25 +1,34 @@
 import streamlit as st
-from src.technical_analyzer import TechnicalAnalyzer
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+
+# Import local modules
 from src.data_fetcher import DataFetcher
+from src.technical_analyzer import TechnicalAnalyzer
 from src.visualizer import Visualizer
 from src.news_fetcher import NewsFetcher
 from src.reddit_analyzer import RedditSentiment
 from src.geo_data import GeoDataFetcher
 from src.asset_categories import AssetCategories
 from src.macro_data import MacroData
-import plotly.express as px
-import pandas as pd
-import threading
-from concurrent.futures import ThreadPoolExecutor
-import plotly.graph_objects as go
 
 class Dashboard:
+    """Class to create financial dashboard"""
+    
     def __init__(self, data_frame):
-        # Définir les catégories d'actifs étendues
+        """
+        Initialize dashboard with data frame
+        
+        Args:
+            data_frame (pd.DataFrame): Input financial data
+        """
+        # Get extended asset categories
         self.asset_categories = AssetCategories.get_all_categories()
         
-        # Trouver le ticker initial à partir des données
+        # Find initial ticker from data
         self.ticker = self._find_initial_ticker(data_frame)
         self.default_start_date = datetime.now().replace(year=datetime.now().year-1)
         self.default_end_date = datetime.now()
@@ -28,12 +37,12 @@ class Dashboard:
             st.session_state.theme_colors = self._get_theme_colors("Neon Cyberpunk")
     
     def _find_initial_ticker(self, df):
-        """Trouver le ticker initial à partir des données"""
-        # Si le DataFrame contient une colonne 'Ticker', utiliser la première valeur
+        """Find initial ticker from data"""
+        # If DataFrame contains 'Ticker' column, use first value
         if 'Ticker' in df.columns:
             return df['Ticker'].iloc[0]
-        # Sinon, utiliser le premier ticker dans les catégories
-        return self.asset_categories["Technologie"][0]
+        # Otherwise, use first ticker in categories
+        return self.asset_categories["Technology"][0]
         
     def _get_theme_colors(self, theme_name):
         """Return color palette for selected theme"""
@@ -63,26 +72,27 @@ class Dashboard:
                 "text": "#aaffff"
             },
             "Acid Jungle": {
-                "primary": "#001100",  # Plus foncé
-                "secondary": "#00cc00",  # Vert vif mais moins agressif
-                "background": "#000800",  # Fond plus sombre
+                "primary": "#001100",  # Darker
+                "secondary": "#00cc00",  # Bright but less aggressive green
+                "background": "#000800",  # Darker background
                 "accent1": "#00aa00",
                 "accent2": "#008800",
-                "text": "#e0ffe0"  # Texte vert très clair
+                "text": "#e0ffe0"  # Very light green text
             },
             "Galactic Purple": {
                 "primary": "#0d000d",
                 "secondary": "#cc00ff",
-                "background": "#080008",  # Plus sombre
+                "background": "#080008",  # Darker
                 "accent1": "#9900ff",
                 "accent2": "#ff00cc",
-                "text": "#f0e0ff"  # Texte violet clair
+                "text": "#f0e0ff"  # Light purple text
             }
         }
         return themes.get(theme_name, themes["Neon Cyberpunk"]) 
         
     def _create_sidebar_controls(self):
-        # Trouver la catégorie du ticker actuel
+        """Create sidebar controls for dashboard"""
+        # Find current ticker's category
         current_category = None
         for category, tickers in self.asset_categories.items():
             if self.ticker in tickers:
@@ -90,50 +100,50 @@ class Dashboard:
                 break
         
         if current_category is None:
-            current_category = "Actions"
+            current_category = "Stocks"
         
-        # Widgets de sélection
+        # Selection widgets
         selected_category = st.sidebar.selectbox(
-            "Catégorie", 
+            "Category", 
             list(self.asset_categories.keys()),
             index=list(self.asset_categories.keys()).index(current_category)
         )
         
         ticker_options = self.asset_categories[selected_category]
     
-        # Vérifie si le ticker actuel est dans les options
+        # Verify if current ticker is in options
         if self.ticker in ticker_options:
             ticker_index = ticker_options.index(self.ticker)
         else:
-            ticker_index = 0  # Prend le premier ticker par défaut
+            ticker_index = 0  # Take first ticker by default
         
         self.selected_ticker = st.sidebar.selectbox(
             "Ticker", 
             ticker_options,
-            index=ticker_index  # Utilise l'index calculé
+            index=ticker_index  # Use calculated index
         )
         
         start_value = st.session_state.get('dashboard_start_date', self.default_start_date)
         end_value = st.session_state.get('dashboard_end_date', self.default_end_date)
         
         self.start_date = st.sidebar.date_input(
-            "Date de début:", 
+            "Start date:", 
             value=start_value,
             key="dashboard_start_date"
         )
         self.end_date = st.sidebar.date_input(
-            "Date de fin:", 
+            "End date:", 
             value=end_value,
             key="dashboard_end_date"
         )
         
-        if st.sidebar.button("Appliquer les changements"):
+        if st.sidebar.button("Apply changes"):
             self._reload_data()
         
         st.sidebar.markdown("---")
-        st.sidebar.subheader("🎨 Personnalisation du thème")
+        st.sidebar.subheader("🎨 Theme Customization")
         new_theme = st.sidebar.selectbox(
-            "Thème visuel",
+            "Visual theme",
             ["Neon Cyberpunk", "Lava Explosion", "Electric Ocean", "Acid Jungle", "Galactic Purple"],
             index=0,
             key="dashboard_theme_selector"
@@ -144,25 +154,25 @@ class Dashboard:
             st.session_state.current_theme = new_theme
             st.rerun()
     
-    # Remplacer la méthode _reload_data
     def _reload_data(self):
         """Load data with caching"""
-        # Créer une clé de cache unique
+        # Create unique cache key
         cache_key = f"{self.selected_ticker}_{self.start_date}_{self.end_date}"
         
-        # Vérifier le cache
+        # Check cache
         if 'data_cache' in st.session_state and cache_key in st.session_state.data_cache:
             self.df = st.session_state.data_cache[cache_key]
             st.session_state.df = self.df
             st.rerun()
             return
+            
         """Load data synchronously"""
-        with st.status(f"**Chargement des données pour {self.selected_ticker}...**", expanded=True) as status:
-            st.write("Récupération des données depuis Yahoo Finance")
+        with st.status(f"**Loading data for {self.selected_ticker}...**", expanded=True) as status:
+            st.write("Retrieving data from Yahoo Finance")
             progress_bar = st.progress(0)
             
             try:
-                # Convertir les dates au format string
+                # Convert dates to string format
                 start_str = self.start_date.strftime("%Y-%m-%d")
                 end_str = self.end_date.strftime("%Y-%m-%d")
                 
@@ -171,11 +181,11 @@ class Dashboard:
                 new_df = fetcher.fetch_data(start=start_str, end=end_str)
                 
                 if new_df.empty:
-                    status.update(label="Aucune donnée disponible pour ces paramètres", state="error")
-                    st.error("Vérifiez le ticker et les dates sélectionnées")
+                    status.update(label="No data available for these parameters", state="error")
+                    st.error("Check selected ticker and dates")
                     return
                     
-                st.write("Traitement des données (calcul des indicateurs techniques)")
+                st.write("Processing data (calculating technical indicators)")
                 progress_bar.progress(60)
                 analyzer = TechnicalAnalyzer(new_df)
                 analyzer.compute_50_200_days()
@@ -189,93 +199,96 @@ class Dashboard:
                 self.df = analyzer.df
                 st.session_state.df = self.df
                 progress_bar.progress(100)
-                status.update(label="Données mises à jour avec succès !", state="complete")
+                status.update(label="Data updated successfully!", state="complete")
                 st.rerun()
                 
             except Exception as e:
-                status.update(label="Erreur lors du chargement", state="error")
-                st.error(f"Erreur : {str(e)}")
+                status.update(label="Error during loading", state="error")
+                st.error(f"Error: {str(e)}")
         if 'data_cache' not in st.session_state:
             st.session_state.data_cache = {}
             st.session_state.data_cache[cache_key] = self.df
+            
     def _display_kpis(self):
         """Display key indicators with improved style"""
         cols = st.columns(4)
     
         price_change = self.df['Close'].pct_change().iloc[-1] * 100
         cols[0].metric(
-            label="💰 Prix actuel",
+            label="💰 Current price",
             value=f"{self.df['Close'].iloc[-1]:.2f} $",
             delta=f"{price_change:.2f}%",
             delta_color="normal",
-            help="Dernier prix de clôture avec variation journalière"
+            help="Last closing price with daily variation"
         )
     
         volatility = self.df['Volatility'].iloc[-1] * 100
         volatility_icon = "📈" if volatility < 5 else "📉" if volatility > 15 else "📊"
         cols[1].metric(
-            label=f"{volatility_icon} Volatilité (30j)",
+            label=f"{volatility_icon} Volatility (30d)",
             value=f"{volatility:.1f}%",
-            help="Volatilité annualisée sur 30 jours"
+            help="Annualized 30-day volatility"
         )
     
         volume = self.df['Volume'].iloc[-1]
         cols[2].metric(
-            label="📦 Volume journalier",
+            label="📦 Daily volume",
             value=f"{volume/1e6:.1f}M",
-            help="Volume échangé en millions"
+            help="Traded volume in millions"
         )
     
         if 'rsi' in self.df.columns:
             rsi_value = self.df['rsi'].iloc[-1]
-            rsi_status = "Achat" if rsi_value < 30 else "Vente" if rsi_value > 70 else "Neutre"
+            rsi_status = "Buy" if rsi_value < 30 else "Sell" if rsi_value > 70 else "Neutral"
             cols[3].metric(
-                label=f"📊 RSI (14j) - {rsi_status}",
+                label=f"📊 RSI (14d) - {rsi_status}",
                 value=f"{rsi_value:.1f}",
-                help="Indice de force relative - <30: Survente, >70: Surachat"
+                help="Relative Strength Index - <30: Oversold, >70: Overbought"
             )
-         # Mood Market (nouvelle section)
+        
+        # Market Mood (new section)
         st.markdown("---")
         self._display_market_mood()
         
-        # Jauge Risque/Récompense
+        # Risk/Reward gauge
         self._display_risk_reward()
 
-        # Ajouter après la jauge risque/récompense
+        # Add after risk/reward gauge
         self._display_macro_context()
-    def _display_macro_context(self):
-        """Affiche le contexte macro-économique"""
-        st.markdown("---")
-        st.subheader("🌐 Contexte Macro-économique")
         
-        with st.spinner("Chargement des données macro..."):
+    def _display_macro_context(self):
+        """Display macroeconomic context"""
+        st.markdown("---")
+        st.subheader("🌐 Macro-economic Context")
+        
+        with st.spinner("Loading macro data..."):
             macro_fetcher = MacroData()
             
             macro_df, errors = macro_fetcher.fetch_macro_data(period="1y")
             
-            # Afficher les erreurs
+            # Display errors
             if errors:
                 for indicator, error in errors.items():
                     st.warning(f"{indicator}: {error}")
                     
             if macro_df.empty:
-                st.warning("Aucune donnée macro disponible")
+                st.warning("No macro data available")
                 return
                 
-            # Afficher les indicateurs même avec peu de points
+            # Display indicators even with few points
             cols = st.columns(4)
             indicators = list(macro_df.columns)[:4]
             
             for i, indicator in enumerate(indicators):
                 try:
-                    # Utiliser la dernière valeur disponible
+                    # Use last available value
                     value = macro_df[indicator].iloc[-1]
                     cols[i].metric(label=indicator, value=f"{value:.2f}")
                 except:
                     cols[i].metric(label=indicator, value="N/A")
             
-            # Afficher le graphique même avec peu de données
-            st.markdown("**Tendances macro-économiques**")
+            # Display chart even with little data
+            st.markdown("**Macro-economic trends**")
             fig = Visualizer(macro_df, rows=1, columns=1)
             for indicator in macro_df.columns:
                 fig._add_trace(
@@ -289,49 +302,50 @@ class Dashboard:
                 )
             fig.fig.update_layout(height=300)
             st.plotly_chart(fig.fig, use_container_width=True)
+            
     def _create_analysis_tabs(self):
         """Create analysis tabs with enriched content"""
         tab1, tab2, tab3, tab4 , tab5 = st.tabs([
-            "📈 Graphique principal", 
-            "📊 Analyse technique", 
-            "🔍 Données brutes",
-            "📰 Actualités & Sentiment",
-            "🌍 Influence géographique" 
+            "📈 Main Chart", 
+            "📊 Technical Analysis", 
+            "🔍 Raw Data",
+            "📰 News & Sentiment",
+            "🌍 Geographical Influence" 
         ])
 
         with tab1:
-            st.markdown("#### Évolution des prix avec moyennes mobiles")
+            st.markdown("#### Price evolution with moving averages")
             fig = Visualizer(self.df, rows=1, columns=1)
             fig.draw_candlestick().MA_draw(overlay=True)
-            fig.show(title=f"Analyse de {self.selected_ticker}")
+            fig.show(title=f"Analysis of {self.selected_ticker}")
         
-            st.markdown("##### Tendances récentes")
+            st.markdown("##### Recent trends")
             col1, col2 = st.columns(2)
             with col1:
                 last_5_days = self.df['Close'].pct_change(5).iloc[-1] * 100
-                st.metric("5 derniers jours", f"{last_5_days:.2f}%")
+                st.metric("Last 5 days", f"{last_5_days:.2f}%")
             with col2:
                 last_month = self.df['Close'].pct_change(20).iloc[-1] * 100
-                st.metric("1 mois", f"{last_month:.2f}%")
+                st.metric("1 month", f"{last_month:.2f}%")
 
         with tab2:
-            st.markdown("#### Analyse technique complète")
+            st.markdown("#### Complete technical analysis")
             cols = st.columns(2)
         
             with cols[0]:
-                st.markdown("##### Indicateurs clés")
+                st.markdown("##### Key indicators")
                 fig1 = Visualizer(self.df, rows=2, columns=1, row_heights=[0.7, 0.3])
                 fig1.draw_candlestick().Rsi_draw(show_zones=True)
                 fig1.show()
             
             with cols[1]:
-                st.markdown("##### Volume et volatilité")
+                st.markdown("##### Volume and volatility")
                 fig2 = Visualizer(self.df, rows=2, columns=1, row_heights=[0.5, 0.5])
                 fig2.draw_volume().draw_cumulative_returns()
                 fig2.show()
 
         with tab3:
-            st.markdown("#### Données historiques")
+            st.markdown("#### Historical data")
             st.data_editor(
                 self.df.sort_index(ascending=False),
                 column_config={
@@ -355,22 +369,23 @@ class Dashboard:
             self._display_geo_influence()
 
     def _display_geo_influence(self):
-        @st.cache_data(ttl=86400)  # Cache de 24h
+        @st.cache_data(ttl=86400)  # 24h cache
         def get_cached_geo_data(ticker):
             fetcher = GeoDataFetcher()
             return fetcher.get_geo_data(ticker)
+            
         """Display geographical influence map with Plotly"""
-        st.subheader("Influence géographique")
+        st.subheader("Geographical Influence")
         
         fetcher = GeoDataFetcher()
         geo_data = get_cached_geo_data(self.selected_ticker)
         df_geo = fetcher.to_dataframe(geo_data)
         
         if df_geo.empty:
-            st.warning("Aucune donnée géographique disponible pour ce ticker")
+            st.warning("No geographical data available for this ticker")
             return
         
-        # Créer la carte avec Plotly
+        # Create map with Plotly
         fig = px.scatter_geo(
             df_geo,
             lat='lat',
@@ -381,10 +396,10 @@ class Dashboard:
             hover_name='country',
             hover_data={'weight': ':.2%', 'lat': False, 'lon': False, 'size': False},
             projection='natural earth',
-            title=f"Exposition géographique de {self.selected_ticker}"
+            title=f"Geographical exposure of {self.selected_ticker}"
         )
         
-        # Personnaliser le style selon le thème
+        # Customize style according to theme
         fig.update_layout(
             geo=dict(
                 bgcolor='rgba(0,0,0,0)',
@@ -403,12 +418,12 @@ class Dashboard:
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Afficher les données sous forme de tableau
-        with st.expander("Voir les données détaillées"):
+        # Display data as table
+        with st.expander("View detailed data"):
             st.dataframe(
                 df_geo[['country', 'weight']].sort_values('weight', ascending=False),
                 column_config={
-                    "country": "Pays",
+                    "country": "Country",
                     "weight": st.column_config.ProgressColumn(
                         "Influence",
                         format="%.2f%%",
@@ -419,9 +434,10 @@ class Dashboard:
                 hide_index=True,
                 use_container_width=True
             )
+            
     def _display_news_analysis(self):
         """Display news and sentiment analysis"""
-        st.subheader("📰 Actualités et analyse de sentiment")
+        st.subheader("📰 News and Sentiment Analysis")
     
         news = NewsFetcher().get_company_news(self.selected_ticker)
         reddit_data = RedditSentiment().analyze_ticker(self.selected_ticker)
@@ -433,17 +449,17 @@ class Dashboard:
     
         global_score = (avg_news_score + reddit_score) / 2
         
-        st.markdown("### Recommandation d'investissement")
+        st.markdown("### Investment Recommendation")
         if global_score > 0.3:
-            st.success("✅ **Favorable à l'achat** - Sentiment très positif")
+            st.success("✅ **Favorable to buy** - Very positive sentiment")
         elif global_score > -0.2:
-            st.info("🟢 **Opportunité modérée** - Sentiment généralement neutre")
+            st.info("🟢 **Moderate opportunity** - Generally neutral sentiment")
         else:
-            st.warning("⚠️ **Prudence** - Sentiment négatif dominant")
+            st.warning("⚠️ **Caution** - Dominant negative sentiment")
         
-        st.metric("Score de confiance", f"{global_score:.2f}/1.0")
+        st.metric("Confidence score", f"{global_score:.2f}/1.0")
         
-        st.markdown("### Dernières actualités")
+        st.markdown("### Latest news")
         for item in news:
             sentiment_color = {
                 "positive": "green",
@@ -459,33 +475,34 @@ class Dashboard:
             </div>
             """, unsafe_allow_html=True)
         
-        st.markdown("### Sentiment des réseaux sociaux")
+        st.markdown("### Social media sentiment")
         st.progress((reddit_data['positive'] / reddit_data['total']))
-        st.caption(f"Positif: {reddit_data['positive']} | Neutre: {reddit_data['neutral']} | Négatif: {reddit_data['negative']}")
+        st.caption(f"Positive: {reddit_data['positive']} | Neutral: {reddit_data['neutral']} | Negative: {reddit_data['negative']}")
+        
     def _display_market_mood(self):
-        """Affiche l'humeur du marché avec des emojis géants"""
-        # Calcul des tendances
+        """Display market mood with giant emojis"""
+        # Calculate trends
         last_5_days = self.df['Close'].pct_change(5).iloc[-1] * 100
         last_month = self.df['Close'].pct_change(20).iloc[-1] * 100
         
-        # Détermination de l'humeur
+        # Determine mood
         if last_5_days > 5:
-            mood = "🚀"  # Hausse forte
-            explanation = "Forte hausse récente"
+            mood = "🚀"  # Strong rise
+            explanation = "Strong recent gain"
         elif last_5_days < -5:
-            mood = "😱"  # Krach
-            explanation = "Fort recul récent"
+            mood = "😱"  # Crash
+            explanation = "Strong recent decline"
         elif last_month > 10:
-            mood = "📈"  # Tendance haussière
-            explanation = "Bonne tendance mensuelle"
+            mood = "📈"  # Bullish trend
+            explanation = "Good monthly trend"
         elif last_month < -10:
-            mood = "📉"  # Tendance baissière
-            explanation = "Tendance mensuelle négative"
+            mood = "📉"  # Bearish trend
+            explanation = "Negative monthly trend"
         else:
             mood = "🥱"  # Stagnation
-            explanation = "Marché stagnant"
+            explanation = "Stagnant market"
         
-        # Affichage stylisé
+        # Stylized display
         st.markdown(f"""
         <div style="text-align:center; margin: 30px 0;">
             <div style="font-size: 80px; margin-bottom: 10px;">{mood}</div>
@@ -494,35 +511,36 @@ class Dashboard:
             </div>
         </div>
         """, unsafe_allow_html=True)
-    def _display_risk_reward(self):
-        """Affiche la jauge risque/récompense"""
-        volatility = self.df['Volatility'].iloc[-1] * 100  # Volatilité en %
         
-        # Détermination du niveau de risque
+    def _display_risk_reward(self):
+        """Display risk/reward gauge"""
+        volatility = self.df['Volatility'].iloc[-1] * 100  # Volatility in %
+        
+        # Determine risk level
         if volatility < 5:
-            level = "🟢 Faible"
+            level = "🟢 Low"
             position = 25
             color = "#00ff00"
         elif volatility < 15:
-            level = "🟡 Modéré"
+            level = "🟡 Moderate"
             position = 50
             color = "#ffff00"
         else:
-            level = "🔴 Élevé"
+            level = "🔴 High"
             position = 85
             color = "#ff0000"
         
-        # Affichage de la jauge
+        # Display gauge
         st.markdown(f"""
         <div style="margin: 30px 0; text-align: center;">
             <div style="font-size: 20px; margin-bottom: 10px; color: {st.session_state.theme_colors['text']}">
-                Ratio Risque/Récompense
+                Risk/Reward Ratio
             </div>
             <div style="background: #333; height: 30px; border-radius: 15px; position: relative; margin: 0 auto; max-width: 600px;">
                 <div style="position: absolute; width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
-                    <span>Élevé</span>
-                    <span>Équilibré</span>
-                    <span>Faible</span>
+                    <span>High</span>
+                    <span>Balanced</span>
+                    <span>Low</span>
                 </div>
                 <div style="background: linear-gradient(to right, #ff0000, #ffff00, #00ff00); 
                             height: 100%; border-radius: 15px; opacity: 0.6;"></div>
@@ -531,15 +549,17 @@ class Dashboard:
                             background: {color}; border-radius: 5px;"></div>
             </div>
             <div style="font-size: 24px; margin-top: 10px; color: {color}">
-                {level} • Volatilité: {volatility:.1f}%
+                {level} • Volatility: {volatility:.1f}%
             </div>
         </div>
         """, unsafe_allow_html=True)
+        
     def _add_data_download(self):
+        """Add data download button"""
         csv_data = self.df.to_csv(index=False).encode('utf-8')
         today = datetime.now().strftime("%Y-%m-%d")
         st.download_button(
-            label="📥 Télécharger les données",
+            label="📥 Download data",
             data=csv_data,
             file_name=f'stock_data_{today}.csv',
             mime='text/csv',
@@ -548,15 +568,15 @@ class Dashboard:
     
 
     def display(self):
-        """Version with alert system"""
+        """Display dashboard with alert system"""
         container = st.container()
         with container:
             self._create_sidebar_controls()
             self._create_alert_system()
             
-            # Vérifier si les données sont chargées
+            # Verify if data is loaded
             if not hasattr(self, 'df') or self.df.empty:
-                st.warning("Chargement initial des données...")
+                st.warning("Loading initial data...")
                 self._reload_data()
                 return
     
@@ -568,7 +588,7 @@ class Dashboard:
                 
     def _create_alert_system(self):
         """Visually improved alert system"""
-        with st.sidebar.expander("🔔 Système d'alertes", expanded=True):
+        with st.sidebar.expander("🔔 Alert System", expanded=True):
             if 'alerts' not in st.session_state:
                 st.session_state.alerts = []
         
@@ -576,32 +596,32 @@ class Dashboard:
                 cols = st.columns(2)
                 with cols[0]:
                     indicator = st.selectbox(
-                        "Indicateur",
-                        ["RSI", "Prix de clôture", "Volatilité", "Croisement MA"],
+                        "Indicator",
+                        ["RSI", "Closing Price", "Volatility", "MA Crossover"],
                         key="alert_indicator"
                     )
                     condition = st.selectbox(
                         "Condition",
-                        ["Au-dessus", "En dessous", "Croise au-dessus", "Croise en dessous"],
+                        ["Above", "Below", "Crosses above", "Crosses below"],
                         key="alert_condition"
                     )
             
                 with cols[1]:
                     threshold = st.number_input(
-                        "Seuil",
+                        "Threshold",
                         min_value=0.0,
-                        max_value=1000.0 if indicator == "Prix de clôture" else 100.0,
+                        max_value=1000.0 if indicator == "Closing Price" else 100.0,
                         value=30.0 if indicator == "RSI" else 50.0,
                         step=0.1,
                         key="alert_threshold"
                     )
                     color = st.color_picker(
-                        "Couleur d'alerte",
+                        "Alert color",
                         value="#FF4B4B",
                         key="alert_color"
                     )
             
-                if st.form_submit_button("➕ Ajouter une alerte", use_container_width=True):
+                if st.form_submit_button("➕ Add alert", use_container_width=True):
                     new_alert = {
                         'indicator': indicator,
                         'condition': condition,
@@ -611,11 +631,11 @@ class Dashboard:
                         'triggered': False
                     }
                     st.session_state.alerts.append(new_alert)
-                    st.success("Alerte enregistrée !")
+                    st.success("Alert saved!")
         
             if st.session_state.alerts:
                 st.markdown("---")
-                st.markdown("**Mes alertes actives**")
+                st.markdown("**My active alerts**")
             
                 for i, alert in enumerate(st.session_state.alerts[:5]):
                     with st.container(border=True):
@@ -664,26 +684,26 @@ class Dashboard:
             
                 if alert['indicator'] == "RSI":
                     current_value = self.df['rsi'].iloc[-1]
-                elif alert['indicator'] == "Prix de clôture":
+                elif alert['indicator'] == "Closing Price":
                     current_value = self.df['Close'].iloc[-1]
-                elif alert['indicator'] == "Volatilité":
+                elif alert['indicator'] == "Volatility":
                     current_value = self.df['Volatility'].iloc[-1] * 100
             
                 if current_value is not None:
-                    if alert['condition'] == "Au-dessus" and current_value > alert['threshold']:
+                    if alert['condition'] == "Above" and current_value > alert['threshold']:
                         message = f"🚨 {alert['indicator']} ({current_value:.2f}) > {alert['threshold']}"
-                    elif alert['condition'] == "En dessous" and current_value < alert['threshold']:
+                    elif alert['condition'] == "Below" and current_value < alert['threshold']:
                         message = f"🚨 {alert['indicator']} ({current_value:.2f}) < {alert['threshold']}"
                 
-                    elif alert['indicator'] == "Croisement MA":
-                        if alert['condition'] == "Croise au-dessus" and \
+                    elif alert['indicator'] == "MA Crossover":
+                        if alert['condition'] == "Crosses above" and \
                             self.df['MA_50'].iloc[-1] > self.df['MA_200'].iloc[-1] and \
                             self.df['MA_50'].iloc[-2] <= self.df['MA_200'].iloc[-2]:
-                            message = "🚨 Croisement haussier (MA50 > MA200)"
-                        elif alert['condition'] == "Croise en dessous" and \
+                            message = "🚨 Bullish crossover (MA50 > MA200)"
+                        elif alert['condition'] == "Crosses below" and \
                             self.df['MA_50'].iloc[-1] < self.df['MA_200'].iloc[-1] and \
                             self.df['MA_50'].iloc[-2] >= self.df['MA_200'].iloc[-2]:
-                            message = "🚨 Croisement baissier (MA50 < MA200)"
+                            message = "🚨 Bearish crossover (MA50 < MA200)"
             
                     if message and not alert['triggered']:
                         st.toast(message, icon="🔔")
@@ -692,7 +712,7 @@ class Dashboard:
                         st.session_state.alerts[i]['triggered'] = False
                     
             except KeyError as e:
-                st.error(f"Erreur: Colonne {str(e)} manquante pour l'alerte")
+                st.error(f"Error: Missing column {str(e)} for alert")
                 
     @classmethod
     def test_dashboard(cls):

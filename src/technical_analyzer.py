@@ -1,11 +1,16 @@
-from src.data_fetcher import DataFetcher
 import pandas as pd
 import numpy as np
 
+# Import local modules
+from src.data_fetcher import DataFetcher
+
 class TechnicalAnalyzer:
+    """Class to perform technical analysis on financial data"""
+    
     def __init__(self, data_frame):
         """
         Initialize analyzer with given DataFrame.
+        
         Args:
             data_frame (pd.DataFrame): Data containing OHLC values.
         """
@@ -34,8 +39,9 @@ class TechnicalAnalyzer:
     def add_rsi(self, window=14):
         """
         Add RSI (Relative Strength Index) indicator.
+        
         Args:
-            window (int): Number of periods for RSI calculation.
+            window (int): Number of periods for RSI calculation (default: 14)
         """
         delta = self.df['Close'].diff()
         gain = delta.where(delta > 0.0, 0)
@@ -68,15 +74,11 @@ class TechnicalAnalyzer:
         )
 
     def add_performance_column(self):
-        """
-        Add 'Daily_Return' column (percentage daily return).
-        """
+        """Add 'Daily_Return' column (percentage daily return)."""
         self.df['Daily_Return'] = self.df['Close'].pct_change().fillna(0)
 
     def add_returns_columns(self):
-        """
-        Add 'returns' column (shifted signal * daily return).
-        """
+        """Add 'returns' column (shifted signal * daily return)."""
         required_columns = ['Signal', 'Daily_Return']
         if not all(col in self.df.columns for col in required_columns):
             raise ValueError("Missing required columns")
@@ -84,26 +86,34 @@ class TechnicalAnalyzer:
         self.df['returns'] = self.df['Signal'].shift(1) * self.df['Daily_Return']
 
     def calculate_volatility(self, window=30, annualized=True):
+        """
+        Calculate volatility
+        
+        Args:
+            window (int): Rolling window size (default: 30)
+            annualized (bool): Annualize volatility (default: True)
+        """
         returns = self.df['Close'].pct_change()
     
-        # Vérifier s'il y a suffisamment de données
+        # Verify sufficient data
         if len(returns) < window:
-            # Utiliser une fenêtre plus petite si nécessaire
+            # Use smaller window if needed
             window = max(2, len(returns) // 2)
         
         rolling_std = returns.rolling(window).std()
         
         if annualized:
-            rolling_std = rolling_std * np.sqrt(252)  # Annualisation
+            rolling_std = rolling_std * np.sqrt(252)  # Annualization
         
         self.df['Volatility'] = rolling_std
 
     def bollinger_bands(self, window=30, num_std=2):
         """
         Add Bollinger Bands to DataFrame.
+        
         Args:
-            window (int): Moving average window
-            num_std (int): Standard deviations from mean
+            window (int): Moving average window (default: 30)
+            num_std (int): Standard deviations from mean (default: 2)
         """
         self.df['MA_BB'] = self.df['Close'].rolling(window).mean()
         if 'Volatility' not in self.df.columns:
@@ -116,8 +126,10 @@ class TechnicalAnalyzer:
     def _clean_data(self, raw_data):
         """
         Clean and normalize input DataFrame.
+        
         Args:
             raw_data (pd.DataFrame): Raw input data
+            
         Returns:
             pd.DataFrame: Cleaned and formatted DataFrame
         """
@@ -142,6 +154,7 @@ class TechnicalAnalyzer:
     def test_analyzer(cls, df=None):
         """
         Test technical calculations
+        
         Example:
         >>> df = DataFetcher.test_fetcher()
         >>> analyzer = TechnicalAnalyzer.test_analyzer(df)

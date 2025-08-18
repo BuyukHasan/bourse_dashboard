@@ -1,18 +1,23 @@
 import plotly.graph_objects as go
 import pandas as pd
 import streamlit as st
-from src.technical_analyzer import TechnicalAnalyzer
 from plotly.subplots import make_subplots
 
+# Import local modules
+from src.technical_analyzer import TechnicalAnalyzer
+
 class Visualizer:
+    """Class to visualize financial data"""
+    
     def __init__(self, data_frame, rows=2, columns=2, row_heights=None):
         """
         Initialize visualizer with subplot grid
+        
         Args:
             data_frame (pd.DataFrame): Input data
-            rows (int): Number of rows
-            columns (int): Number of columns
-            row_heights (list): Relative row heights
+            rows (int): Number of rows (default: 2)
+            columns (int): Number of columns (default: 2)
+            row_heights (list): Relative row heights (default: None)
         """
         self.df = data_frame
         self.max_row = rows
@@ -165,7 +170,7 @@ class Visualizer:
             dates = self.df.index if isinstance(self.df.index, pd.DatetimeIndex) else self.df['Date']
             cumulative_returns = (1 + self.df['returns']).cumprod() - 1
         except ValueError:
-            # Fallback si 'returns' n'existe pas
+            # Fallback if 'returns' doesn't exist
             self.df['returns'] = self.df['Close'].pct_change().fillna(0)
             cumulative_returns = (1 + self.df['returns']).cumprod() - 1
         
@@ -183,10 +188,11 @@ class Visualizer:
     def draw_multiple_tickers(self, tickers_data, overlay=False, colors=None):
         """
         Display multiple price series
+        
         Args:
-            tickers_data (dict): {ticker: DataFrame}
-            overlay (bool): Overlay on current plot
-            colors (list): Color list for each series
+            tickers_data (dict): {ticker: DataFrame} dictionary
+            overlay (bool): Overlay on current plot (default: False)
+            colors (list): Color list for each series (default: None)
         """
         if not isinstance(tickers_data, dict):
             raise ValueError("tickers_data must be a {ticker: df} dictionary")
@@ -375,6 +381,7 @@ class Visualizer:
     def test_visualizer(cls, df=None):
         """
         Generate visual test report
+        
         Example:
         >>> analyzer = TechnicalAnalyzer.test_analyzer()
         >>> Visualizer.test_visualizer(analyzer.df)

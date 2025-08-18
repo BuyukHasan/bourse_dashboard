@@ -1,10 +1,11 @@
-# src/geo_data.py
 import pandas as pd
 import random
 
 class GeoDataFetcher:
+    """Class to manage geographical data for companies"""
+    
     def __init__(self):
-        # Base de données des pays et de leurs coordonnées
+        # Database of countries and their coordinates
         self.country_data = {
             "USA": {"lat": 37.0902, "lon": -95.7129, "color": "#FF0000"},
             "China": {"lat": 35.8617, "lon": 104.1954, "color": "#0000FF"},
@@ -18,7 +19,7 @@ class GeoDataFetcher:
             "Brazil": {"lat": -14.2350, "lon": -51.9253, "color": "#008080"},
         }
         
-        # Base de données des entreprises avec leur pays d'origine
+        # Database of companies with their country of origin
         self.company_origins = {
             "AAPL": "USA",
             "MSFT": "USA",
@@ -344,22 +345,31 @@ class GeoDataFetcher:
         }
     
     def get_geo_data(self, ticker):
+        """
+        Get geographical data for a ticker
+        
+        Args:
+            ticker (str): Stock ticker symbol
+            
+        Returns:
+            list: Geographical data points
+        """
         MAX_COUNTRIES = 5
-        # Récupérer le pays d'origine
+        # Get country of origin
         origin_country = self.company_origins.get(ticker, "USA")
         
-        # Créer les données avec le pays d'origine comme principal
+        # Create data with origin country as main
         data = [{
             "country": origin_country,
             "weight": 0.85,
             **self.country_data[origin_country]
         }]
         
-        # Ajouter des pays secondaires pertinents selon le pays d'origine
+        # Add relevant secondary countries based on origin country
         relevant_countries = self._get_relevant_secondary_countries(origin_country)
         secondary_countries = relevant_countries[:MAX_COUNTRIES-1]
         
-        # Répartir les 15% restants entre les pays secondaires
+        # Distribute remaining 15% among secondary countries
         total_weight = 0.15
         weight_per_country = total_weight / len(secondary_countries)
         
@@ -373,7 +383,7 @@ class GeoDataFetcher:
         return data
     
     def _get_relevant_secondary_countries(self, origin_country):
-        # Définir des partenaires économiques pertinents par pays
+        """Define relevant economic partners by country"""
         economic_partners = {
             "USA": ["Canada", "China", "Germany", "UK", "Japan"],
             "China": ["USA", "Japan", "Germany", "Australia", "India"],
@@ -387,11 +397,19 @@ class GeoDataFetcher:
             "Brazil": ["USA", "China", "Germany", "UK", "Argentina"],
         }
         
-        # Retourner les 3 premiers partenaires
+        # Return first 3 partners
         return economic_partners.get(origin_country, ["USA", "China", "Germany"])[:3]
     
     def to_dataframe(self, data):
-        """Convertit les données géo en DataFrame"""
+        """
+        Convert geo data to DataFrame
+        
+        Args:
+            data (list): Geographical data
+            
+        Returns:
+            pd.DataFrame: Formatted DataFrame
+        """
         df = pd.DataFrame(data)
-        df['size'] = df['weight'] * 50  # Taille proportionnelle au poids
+        df['size'] = df['weight'] * 50  # Size proportional to weight
         return df

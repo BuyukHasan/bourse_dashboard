@@ -1,14 +1,16 @@
 import pandas as pd
+import numpy as np
+import streamlit as st
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Import local modules
 from src.data_fetcher import DataFetcher
 from src.technical_analyzer import TechnicalAnalyzer
-import numpy as np
-import threading
-import streamlit as st
 from src.geo_data import GeoDataFetcher
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import streamlit as st
 
 class PortfolioManager:
+    """Class to manage virtual portfolios"""
+    
     def __init__(self, tickers_weights):
         """
         Initialize portfolio manager with asset weights.
@@ -19,6 +21,7 @@ class PortfolioManager:
         self.weights = tickers_weights
         self.data = {}  # Stores DataFrames by ticker
         self.returns = None  # DataFrame of weighted returns
+        
     def get_combined_geo_influence(self):
         """Calculate combined geographical influence for portfolio"""
         geo_fetcher = GeoDataFetcher()
@@ -48,13 +51,14 @@ class PortfolioManager:
                 })
         
         return combined_data
+        
     def fetch_portfolio_data(self, period="1y"):
-        """Fetch data avec gestion des erreurs améliorée"""
+        """Fetch portfolio data with improved error handling"""
         def fetch_and_process(ticker):
             try:
                 df = DataFetcher(ticker).fetch_data(period=period)
                 if df.empty:
-                    return ticker, None, f"Aucune donnée pour {ticker}"
+                    return ticker, None, f"No data for {ticker}"
                     
                 analyzer = TechnicalAnalyzer(df)
                 analyzer.add_performance_column()
@@ -65,14 +69,21 @@ class PortfolioManager:
         data = {}
         errors = {}
         
-        # Limiter à 4 requêtes simultanées maximum
+        # Limit to 4 concurrent requests max
         max_workers = min(4, len(self.weights))
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(fetch_and_process, t): t for t in self.weights.keys()}
+            futures = {}
+            for t in self.weights.keys():
+                future = executor.submit(
+                    fetch_and_process, 
+                    t
+                )
+                futures[future] = t
             
-            for future in as_completed(futures):
-                ticker = futures[future]
+            results = []
+            for i, future in enumerate(as_completed(futures)):
+                t = futures[future]
                 try:
                     t, df, error = future.result()
                     if error:
@@ -80,9 +91,10 @@ class PortfolioManager:
                     elif df is not None:
                         data[t] = df
                 except Exception as e:
-                    errors[ticker] = str(e)
+                    errors[t] = str(e)
                     
         return data, errors
+        
     def calculate_weighted_returns(self):
         """
         Calculate weighted daily portfolio returns.
@@ -139,8 +151,9 @@ class PortfolioManager:
         metrics['sharpe_ratio'] = daily_returns.mean() / daily_returns.std() * np.sqrt(252)
         
         return metrics
+        
     def calculate_correlations(self):
-        """Calcule les corrélations entre les actifs du portefeuille"""
+        """Calculate correlations between portfolio assets"""
         closes = pd.DataFrame()
         for ticker, df in self.data.items():
             if not df.empty:
