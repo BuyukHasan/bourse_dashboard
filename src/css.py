@@ -837,6 +837,22 @@ class Cssdash:
             .block:nth-child(8) {{ left: 75%; animation-delay: 14s; }}
             .block:nth-child(9) {{ left: 85%; animation-delay: 16s; }}
             .block:nth-child(10) {{ left: 95%; animation-delay: 18s; }}
+        .stDataFrame th, .stDataFrame td {{
+            background-color: {colors['primary']} !important;
+            color: {colors['text']} !important;
+            border: 1px solid {colors['secondary']} !important;
+        }}
 
+        .stDataFrame tr:hover {{
+            background-color: {colors['accent1']} !important;
+            color: {colors['primary']} !important;
+        }}
+
+        @keyframes floatBlock {{
+            0% {{ transform: translateY(-100px) rotate(0deg); opacity: 0; }}
+            10% {{ opacity: 1; }}
+            90% {{ opacity: 1; }}
+            100% {{ transform: translateY(100vh) rotate(360deg); opacity: 0; }}
+        }}
         </style>
         """

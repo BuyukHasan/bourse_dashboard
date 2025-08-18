@@ -139,3 +139,14 @@ class PortfolioManager:
         metrics['sharpe_ratio'] = daily_returns.mean() / daily_returns.std() * np.sqrt(252)
         
         return metrics
+    def calculate_correlations(self):
+        """Calcule les corrélations entre les actifs du portefeuille"""
+        closes = pd.DataFrame()
+        for ticker, df in self.data.items():
+            if not df.empty:
+                closes[ticker] = df['Close']
+        
+        if closes.empty:
+            return pd.DataFrame()
+        
+        return closes.corr()

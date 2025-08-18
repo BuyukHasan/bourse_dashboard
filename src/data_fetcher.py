@@ -1,6 +1,6 @@
 import yfinance as yf
 import pandas as pd
-
+from datetime import datetime
 class DataFetcher:
     """Fetch and preprocess stock market data"""
     
@@ -11,34 +11,63 @@ class DataFetcher:
         except:
             print("⚠️ Unknown or misspelled ticker symbol")
 
-    def fetch_data(self, period=None, start=None, end=None, interval="1d" , timeout=10):
-        # Convertir les dates en string si ce sont des objets datetime
-        if isinstance(start, pd.Timestamp):
-            start = start.strftime("%Y-%m-%d")
-        if isinstance(end, pd.Timestamp):
-            end = end.strftime("%Y-%m-%d")
+    def fetch_data(self, period=None, start=None, end=None, interval="1d", timeout=10):
+        # Conversion des dates
+        if start is not None:
+            if isinstance(start, (pd.Timestamp, datetime)):  # Correction ici
+                start = start.strftime("%Y-%m-%d")
+        
+        if end is not None:
+            if isinstance(end, (pd.Timestamp, datetime)):  # Correction ici
+                end = end.strftime("%Y-%m-%d")
+        
         # Traitement spécial pour les ETF obligataires
         bond_etfs = ["TLT", "IEF", "LQD", "HYG", "BND", "GOVT", "VGIT", "VGLT"]
         
-        if self.ticker in bond_etfs:
-            bond_ticker = self.ticker + ".BO" if not self.ticker.endswith(".BO") else self.ticker
-            data = yf.Ticker(bond_ticker).history(
-                period=period,
-                interval=interval,
-                start=start,
-                end=end
-            )
-        else:
-            # Traitement standard
-            data = yf.Ticker(self.ticker).history(
-                period=period,
-                interval=interval,
-                start=start,
-                end=end,
-                timeout=timeout
-            )
-        
-        return self._clean_data(data)
+        try:
+            if self.ticker in bond_etfs:
+                bond_ticker = self.ticker + ".BO" if not self.ticker.endswith(".BO") else self.ticker
+                # Priorité aux dates spécifiques
+                if start and end:
+                    data = yf.Ticker(bond_ticker).history(
+                        start=start,
+                        end=end,
+                        interval=interval
+                    )
+                else:
+                    # Fallback sur la période
+                    data = yf.Ticker(bond_ticker).history(
+                        period=period,
+                        interval=interval
+                    )
+            else:
+                # Traitement standard - priorité aux dates spécifiques
+                if start and end:
+                    data = yf.Ticker(self.ticker).history(
+                        start=start,
+                        end=end,
+                        interval=interval,
+                        timeout=timeout
+                    )
+                else:
+                    # Fallback sur la période
+                    data = yf.Ticker(self.ticker).history(
+                        period=period,
+                        interval=interval,
+                        timeout=timeout
+                    )
+            
+            cleaned = self._clean_data(data)
+            
+            # Vérifier si les données sont vides
+            if cleaned.empty:
+                print(f"⚠️ Aucune donnée trouvée pour {self.ticker} (start={start}, end={end}, period={period})")
+            
+            return cleaned
+            
+        except Exception as e:
+            print(f"❌ Erreur critique avec {self.ticker}: {str(e)}")
+            return pd.DataFrame()
 
     def real_time_data(self):
         """

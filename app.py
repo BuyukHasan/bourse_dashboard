@@ -15,9 +15,11 @@ import plotly.graph_objects as go
 import streamlit as st
 import plotly.express as px
 from datetime import datetime
-import streamlit as st
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import shutil
+import tempfile
+import os
 
 def set_global_theme(theme_name):
     """Définit le thème global et stocke les couleurs dans session_state"""
@@ -632,7 +634,12 @@ def fetch_single_ticker_data(ticker, start_date, end_date):
         return ticker, None
     except Exception as e:
         return ticker, str(e)
+def clear_yfinance_cache():
+    cache_dir = os.path.join(tempfile.gettempdir(), 'yfinance')
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir, ignore_errors=True)
 
+clear_yfinance_cache()
 def main():
     st.set_page_config(page_title="Tableau de bord financier", layout="wide")
     
@@ -749,22 +756,37 @@ def main():
 
     # Le reste du code main...
     if mode == "Tableau de bord individuel":
-        if 'df' not in st.session_state:
-            st.session_state.df = load_initial_data()
-        if 'df' not in st.session_state:
-            fetcher = DataFetcher("AAPL")
-            df = fetcher.fetch_data(period="6mo")
-            analyzer = TechnicalAnalyzer(df)
-            analyzer.compute_50_200_days()
-            analyzer.add_rsi()
-            analyzer.calculate_volatility()
-            analyzer.add_signal_column()
-            analyzer.add_performance_column()
-            analyzer.add_returns_columns()
-            st.session_state.df = analyzer.df
+        # Initialiser les dates par défaut
+        default_start = datetime.now().replace(year=datetime.now().year-1)
+        default_end = datetime.now()
         
-        dashboard = Dashboard(st.session_state.df)
-        dashboard.display()
+        # Récupérer les dates du sélecteur
+        start_date = st.sidebar.date_input("Date de début:", value=default_start)
+        end_date = st.sidebar.date_input("Date de fin:", value=default_end)
+        
+        # Charger les données avec les dates sélectionnées
+        if 'df' not in st.session_state or st.session_state.get('last_dates') != (start_date, end_date):
+            with st.spinner("Chargement des données..."):
+                fetcher = DataFetcher("AAPL")
+                df = fetcher.fetch_data(start=start_date, end=end_date)
+                
+                if not df.empty:
+                    analyzer = TechnicalAnalyzer(df)
+                    analyzer.compute_50_200_days()
+                    analyzer.add_rsi()
+                    analyzer.calculate_volatility()
+                    analyzer.add_signal_column()
+                    analyzer.add_performance_column()
+                    analyzer.add_returns_columns()
+                    st.session_state.df = analyzer.df
+                    st.session_state.last_dates = (start_date, end_date)
+                else:
+                    st.error("Aucune donnée disponible pour cette période")
+                    return
+        
+        if 'df' in st.session_state:
+            dashboard = Dashboard(st.session_state.df)
+            dashboard.display()
     
     elif mode == "Comparaison multi-actifs":
         st.title("Comparaison multi-actifs")

@@ -7,10 +7,12 @@ from src.news_fetcher import NewsFetcher
 from src.reddit_analyzer import RedditSentiment
 from src.geo_data import GeoDataFetcher
 from src.asset_categories import AssetCategories
+from src.macro_data import MacroData
 import plotly.express as px
 import pandas as pd
 import threading
 from concurrent.futures import ThreadPoolExecutor
+import plotly.graph_objects as go
 
 class Dashboard:
     def __init__(self, data_frame):
@@ -20,6 +22,7 @@ class Dashboard:
         # Trouver le ticker initial à partir des données
         self.ticker = self._find_initial_ticker(data_frame)
         self.default_start_date = datetime.now().replace(year=datetime.now().year-1)
+        self.default_end_date = datetime.now()
         self.df = data_frame
         if 'theme_colors' not in st.session_state:
             st.session_state.theme_colors = self._get_theme_colors("Neon Cyberpunk")
@@ -110,15 +113,18 @@ class Dashboard:
             index=ticker_index  # Utilise l'index calculé
         )
         
+        start_value = st.session_state.get('dashboard_start_date', self.default_start_date)
+        end_value = st.session_state.get('dashboard_end_date', self.default_end_date)
+        
         self.start_date = st.sidebar.date_input(
             "Date de début:", 
-            value=self.default_start_date,
-            key="unique_start_date"
+            value=start_value,
+            key="dashboard_start_date"
         )
         self.end_date = st.sidebar.date_input(
             "Date de fin:", 
-            value=datetime.now(),
-            key="unique_end_date"
+            value=end_value,
+            key="dashboard_end_date"
         )
         
         if st.sidebar.button("Appliquer les changements"):
@@ -235,6 +241,54 @@ class Dashboard:
         # Jauge Risque/Récompense
         self._display_risk_reward()
 
+        # Ajouter après la jauge risque/récompense
+        self._display_macro_context()
+    def _display_macro_context(self):
+        """Affiche le contexte macro-économique"""
+        st.markdown("---")
+        st.subheader("🌐 Contexte Macro-économique")
+        
+        with st.spinner("Chargement des données macro..."):
+            macro_fetcher = MacroData()
+            
+            macro_df, errors = macro_fetcher.fetch_macro_data(period="1y")
+            
+            # Afficher les erreurs
+            if errors:
+                for indicator, error in errors.items():
+                    st.warning(f"{indicator}: {error}")
+                    
+            if macro_df.empty:
+                st.warning("Aucune donnée macro disponible")
+                return
+                
+            # Afficher les indicateurs même avec peu de points
+            cols = st.columns(4)
+            indicators = list(macro_df.columns)[:4]
+            
+            for i, indicator in enumerate(indicators):
+                try:
+                    # Utiliser la dernière valeur disponible
+                    value = macro_df[indicator].iloc[-1]
+                    cols[i].metric(label=indicator, value=f"{value:.2f}")
+                except:
+                    cols[i].metric(label=indicator, value="N/A")
+            
+            # Afficher le graphique même avec peu de données
+            st.markdown("**Tendances macro-économiques**")
+            fig = Visualizer(macro_df, rows=1, columns=1)
+            for indicator in macro_df.columns:
+                fig._add_trace(
+                    go.Scatter(
+                        x=macro_df.index,
+                        y=macro_df[indicator],
+                        name=indicator,
+                        mode='lines'
+                    ),
+                    overlay=True
+                )
+            fig.fig.update_layout(height=300)
+            st.plotly_chart(fig.fig, use_container_width=True)
     def _create_analysis_tabs(self):
         """Create analysis tabs with enriched content"""
         tab1, tab2, tab3, tab4 , tab5 = st.tabs([
