@@ -1,126 +1,139 @@
 # 📊 Financial Dashboard - Market Analyzer
 
-Application Streamlit complète d'analyse de marchés financiers avec visualisation technique, gestion de portefeuille et analyse de sentiment.
+Complete Streamlit application for financial market analysis with technical visualization, portfolio management, and sentiment analysis.
 
-![alt text](image.png)
+![Bannière principale](image.png)
 
-## ✨ Fonctionnalités principales
-![alt text](image-1.png)
-- **Tableaux de bord individuels** :
-  - Analyse technique (MA, RSI, Bollinger Bands)
-  - Visualisations interactives (Plotly)
-  ![alt text](image-2.png)
-  - Alertes personnalisables
-  ![alt text](image-3.png)
-- **Comparaison multi-actifs** :
-  - Analyse comparative entre plusieurs tickers
-  ![alt text](image-4.png)
-  ![alt text](image-5.png)
-  - Téléchargement asynchrone des données
-  ![alt text](image-6.png)
-- **Portefeuille virtuel** :
-  - Simulation de portefeuille multi-actifs
-  - Analyse de performance et risque
-  ![alt text](image-7.png)
-  ![alt text](image-8.png)
-  ![alt text](image-9.png)
-  - Cartographie géographique des expositions
-  ![alt text](image-10.png)
-- **Analyse de marché** :
-![alt text](image-11.png)
-  - Sentiment Reddit (simulé)
-  ![alt text](image-12.png)
-  - Actualités financières
-  ![alt text](image-13.png)
-  - Contexte macroéconomique
-  ![alt text](image-14.png)
-- **Personnalisation** :
-  - 7 thèmes visuels différents
-  - Système de couleurs global
-  ![alt text](image-15.png)
-  ![alt text](image-16.png)
-  ![alt text](image-17.png)
-  ![alt text](image-18.png)
-  ![alt text](image-19.png)
-  ![alt text](image-20.png)
-  ![alt text](image-21.png)
+## ✨ Main features
 
-  ## ⚙️ Installation
+### 📈 Individual dashboards
+Advanced technical analysis (MA, RSI, Bollinger Bands) with interactive Plotly visualizations
+![Dashboard individuel](image-1.png)
+![Analyse technique](image-2.png)
 
-1. **Cloner le dépôt** :
+### 🔍 Multi-asset comparison
+Comparative analysis and asynchronous data download
+![Comparaison multi-actifs](image-3.png)
+
+### 💼 Virtual portfolio
+Multi-asset portfolio simulation, performance/risk analysis and geographical mapping
+![Portefeuille virtuel](image-4.png)
+![Performance portefeuille](image-5.png)
+![Carte géographique](image-6.png)
+
+### 📰 Market analysis
+Reddit sentiment (simulated), financial news and macroeconomic context
+![Analyse de sentiment](image-7.png)
+![Actualités financières](image-8.png)
+![Données macroéconomiques](image-9.png)
+
+### 🎨 Advanced customization
+7 unique visual themes to customize the interface
+
+**Neon Cyberpunk** :
+![Neon Cyberpunk](image-10.png)
+
+**Lava Explosion** :
+![Lava Explosion](image-11.png)
+
+**Electric Ocean** :
+![Electric Ocean](image-12.png)
+
+**Acid Jungle** :
+![Acid Jungle](image-13.png)
+
+**Galactic Purple** :
+![Galactic Purple](image-14.png)
+
+**Retro Dark** :
+![Retro Dark](image-15.png)
+
+**Crypto Fever** :
+![Crypto Fever](image-16.png)
+
+# Installation
+
+1. **Clone the repository** :
 ```bash
 git clone https://github.com/BuyukHasan/bourse_dashboard
 cd bourse_dashboard
+```
 
-2. **Créer un environnement virtuel** : 
+2. **Create a virtual environment** :
+```bash
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 venv\Scripts\activate    # Windows
+```
 
-3. **Installer les dépendances** :
+3. **Install the dependencies** :
+```bash
 pip install -r requirements.txt
+```
 
-4. **Lancer l'application** :
+4. **Launch the application** :
+```bash
 streamlit run app.py
+```
 
-🚀 Utilisation
-Modes disponibles
-Dashboard individuel : Analyse technique d'un actif
+## 🚀 Usage
 
-Comparaison multi-actifs : Comparaison de plusieurs instruments
+### Available modes
+- **Individual dashboard** : Technical analysis of an asset
+- **Multi-asset comparison** : Comparison of multiple instruments
+- **Virtual portfolio** : Investment strategy simulation
+- **Unit tests** : Module validation
 
-Portefeuille virtuel : Simulation de stratégie d'investissement
+![Tests unitaires](image-17.png)
 
-Tests unitaires : Validation des modules
+### Useful commands
+- **Rerun** : Button `r`(from the dashboard)
+- **Clear cache**: Button `c` then confirm the instruction on the page (from the dashboard)
+- **Stop application**: Control + `c` (from the terminal where you launched `streamlit run app.py`)
 
-Commandes utiles
-Ctrl+C : Arrêter l'application
+## 🧩 File structure
 
-Clear cache : Bouton dans la sidebar pour rafraîchir les données
-
-🧩 Structure des fichiers
-text
+```
 financial-dashboard/
-├── app.py                # Point d'entrée principal
-├── requirements.txt      # Dépendances
+├── app.py                # Main entry point
+├── requirements.txt      # Dependencies
 ├── .gitignore
-├── asset_categories.py   # Classement des actifs par secteur
-├── css.py                # Gestion des thèmes visuels
-├── dashboard.py          # Module principal du dashboard
-├── data_fetcher.py       # Récupération des données (yfinance)
-├── geo_data.py           # Données géographiques
-├── macro_data.py         # Données macroéconomiques
-├── news_fetcher.py       # Collecte d'actualités
-├── portfolio_manager.py  # Gestion de portefeuille
-├── reddit_analyzer.py    # Analyse de sentiment (simulé)
-├── technical_analyzer.py # Calculs d'indicateurs techniques
-└── visualizer.py         # Visualisations graphiques
+└── src/                  # Folder containing all the project classes
+    ├── asset_categories.py   # Asset classification by sector
+    ├── css.py                # Visual theme management
+    ├── dashboard.py          # Main dashboard module
+    ├── data_fetcher.py       # Data retrieval (yfinance)
+    ├── geo_data.py           # Geographical data
+    ├── macro_data.py         # Macroeconomic data
+    ├── news_fetcher.py       # News collection
+    ├── portfolio_manager.py  # Portfolio management
+    ├── reddit_analyzer.py    # Sentiment analysis (simulated)
+    ├── technical_analyzer.py # Technical indicator calculations
+    └── visualizer.py         # Graph visualizations
+```
 
-🛠 Dépendances clées
-streamlit==1.47.0 - Interface web
+## 🛠 Main Dependencies
 
-yfinance==0.2.65 - Données financières
+- **streamlit==1.47.0** - Web interface
+- **yfinance==0.2.65** - Financial data
+- **plotly==6.2.0** - Interactive visualizations
+- **pandas==2.3.0** - Data manipulation
+- **numpy==2.2.2** - Scientific calculations
 
-plotly==6.2.0 - Visualisations interactives
+## 🤝 Contribution
 
-pandas==2.3.0 - Manipulation de données
+Contributions are welcome! Recommended process:
 
-numpy==2.2.2 - Calculs scientifiques
+1. **Forker** the project
+2. **Create a branch** : `git checkout -b feature/new-feature`
+3. **Commit your changes** : `git commit -m 'Add an awesome feature'`
+4. **Push to the branch** : `git push origin feature/new-feature`
+5. **Open a Pull Request**
 
-🤝 Contribution
-Les contributions sont bienvenues ! Process recommandé :
+## 📜 Licence
 
-Forker le projet
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-Créer une branche : git checkout -b feature/nouvelle-fonctionnalite
-
-Commiter vos changements : git commit -m 'Ajout d'une super fonction'
-
-Pousser vers la branche : git push origin feature/nouvelle-fonctionnalite
-
-Ouvrir une Pull Request
-
-📜 Licence
-Ce projet est sous licence MIT - voir le fichier LICENSE pour plus de détails.
+> **Note** : While the MIT license is permissive, an email notification (buyukh7723@gmail.com) is appreciated for significant reuse. I generally accept as long as I am notified.
 
 
